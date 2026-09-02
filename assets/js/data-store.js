@@ -7,7 +7,7 @@
   'use strict';
 
   const STORAGE_KEY = 'earth_residents_management_data_v1';
-  const DOCTOR_COLOR_PALETTE = [
+  const MASTER_COLOR_PALETTE = [
     '#DBEAFE', '#DCFCE7', '#FEF3C7', '#FCE7F3', '#EDE9FE',
     '#CFFAFE', '#FFEDD5', '#E0E7FF', '#F3E8FF', '#D1FAE5', '#FFE4E6'
   ];
@@ -542,50 +542,79 @@
     removeMasterItem(key, item) {
       if (!this.data.masters || !this.data.masters[key]) return;
       this.data.masters[key] = this.data.masters[key].filter(i => i !== item);
-      if (key === 'doctor' && this.data.doctorColors) {
-        delete this.data.doctorColors[item];
+      if (this.data.doctorColors) {
+        delete this.data.doctorColors[this.getMasterColorStorageKey(key, item)];
       }
       this.saveData();
     }
 
-    // --- 訪問医カラー管理（未設定時は名前から安定した自動色を選択） ---
-    getDoctorColors() {
+    // --- マスタ項目カラー管理（doctorColors 名は既存クラウドデータとの互換のため維持） ---
+    getMasterItemColors() {
       return this.data.doctorColors || {};
     }
 
-    getDoctorColor(doctorName) {
-      const name = String(doctorName || '').trim();
-      if (!name) return '#F3F4F6';
-      const customColor = this.getDoctorColors()[name];
-      if (/^#[0-9A-F]{6}$/i.test(customColor || '')) return customColor.toUpperCase();
-
-      const masterIndex = this.getMaster('doctor').indexOf(name);
-      if (masterIndex >= 0) return DOCTOR_COLOR_PALETTE[masterIndex % DOCTOR_COLOR_PALETTE.length];
-
-      let hash = 0;
-      for (let i = 0; i < name.length; i++) {
-        hash = ((hash * 31) + name.charCodeAt(i)) >>> 0;
-      }
-      return DOCTOR_COLOR_PALETTE[hash % DOCTOR_COLOR_PALETTE.length];
+    getMasterColorStorageKey(masterKey, item) {
+      const key = String(masterKey || '').trim();
+      const value = String(item || '').trim();
+      return key === 'doctor' ? value : `${key}::${value}`;
     }
 
-    setDoctorColor(doctorName, color) {
-      const name = String(doctorName || '').trim();
+    hasMasterItemColor(masterKey, item) {
+      const storageKey = this.getMasterColorStorageKey(masterKey, item);
+      return Object.prototype.hasOwnProperty.call(this.getMasterItemColors(), storageKey);
+    }
+
+    getMasterItemColor(masterKey, item) {
+      const key = String(masterKey || '').trim();
+      const name = String(item || '').trim();
+      if (!name) return '#F3F4F6';
+      const storageKey = this.getMasterColorStorageKey(key, name);
+      const customColor = this.getMasterItemColors()[storageKey];
+      if (/^#[0-9A-F]{6}$/i.test(customColor || '')) return customColor.toUpperCase();
+
+      const masterIndex = this.getMaster(key).indexOf(name);
+      if (masterIndex >= 0) return MASTER_COLOR_PALETTE[masterIndex % MASTER_COLOR_PALETTE.length];
+
+      let hash = 0;
+      const hashSource = `${key}:${name}`;
+      for (let i = 0; i < hashSource.length; i++) {
+        hash = ((hash * 31) + hashSource.charCodeAt(i)) >>> 0;
+      }
+      return MASTER_COLOR_PALETTE[hash % MASTER_COLOR_PALETTE.length];
+    }
+
+    setMasterItemColor(masterKey, item, color) {
+      const key = String(masterKey || '').trim();
+      const name = String(item || '').trim();
       const normalizedColor = String(color || '').trim().toUpperCase();
-      if (!name) return false;
+      if (!key || !name) return false;
       if (!this.data.doctorColors || typeof this.data.doctorColors !== 'object') {
         this.data.doctorColors = {};
       }
+      const storageKey = this.getMasterColorStorageKey(key, name);
 
       if (!normalizedColor) {
-        delete this.data.doctorColors[name];
+        delete this.data.doctorColors[storageKey];
       } else if (/^#[0-9A-F]{6}$/.test(normalizedColor)) {
-        this.data.doctorColors[name] = normalizedColor;
+        this.data.doctorColors[storageKey] = normalizedColor;
       } else {
         return false;
       }
-      this.saveData({ renderHint: { type: 'doctor-color', doctorName: name } });
+      this.saveData({ renderHint: { type: 'master-color', masterKey: key, item: name } });
       return true;
+    }
+
+    // 訪問医カラーの旧API互換
+    getDoctorColors() {
+      return this.getMasterItemColors();
+    }
+
+    getDoctorColor(doctorName) {
+      return this.getMasterItemColor('doctor', doctorName);
+    }
+
+    setDoctorColor(doctorName, color) {
+      return this.setMasterItemColor('doctor', doctorName, color);
     }
 
     // --- 列（カラム）管理＆表示切り替え＆並び替え ---

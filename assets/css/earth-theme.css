@@ -950,13 +950,13 @@ body {
   color: var(--earth-danger);
 }
 
-.doctor-master-tag {
+.colored-master-tag {
   min-height: 36px;
   padding-left: 12px;
   font-size: 13px;
 }
 
-.doctor-color-control {
+.master-color-control {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -968,7 +968,7 @@ body {
   font-size: 10px;
 }
 
-.doctor-color-control input[type="color"] {
+.master-color-control input[type="color"] {
   width: 24px;
   height: 20px;
   padding: 0;
@@ -978,7 +978,7 @@ body {
   cursor: pointer;
 }
 
-.doctor-color-reset {
+.master-color-reset {
   border: 0;
   background: transparent;
   color: inherit;
@@ -987,16 +987,16 @@ body {
   line-height: 1;
 }
 
-.doctor-color-reset:disabled {
+.master-color-reset:disabled {
   opacity: 0.3;
   cursor: default;
 }
 
-.doctor-color-cell {
+.master-color-cell {
   padding: 2px !important;
 }
 
-.doctor-color-select {
+.master-color-select {
   font-weight: 800;
 }
 

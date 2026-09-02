@@ -103,6 +103,7 @@
     // トースト
     toastContainer: document.getElementById('toast-container')
   };
+  const COLOR_ENABLED_MASTER_KEYS = new Set(['doctor', 'dental', 'equipment', 'foodMain']);
 
   let renderFramePending = false;
   function scheduleRenderAll() {
@@ -125,8 +126,8 @@
     })[char]);
   }
 
-  function doctorColorStyle(doctorName) {
-    const background = window.DataStore.getDoctorColor(doctorName);
+  function masterColorStyle(masterKey, item) {
+    const background = window.DataStore.getMasterItemColor(masterKey, item);
     const hex = background.replace('#', '');
     const red = parseInt(hex.slice(0, 2), 16);
     const green = parseInt(hex.slice(2, 4), 16);
@@ -547,11 +548,11 @@
         };
 
         // リスト選択式セルのレンダリング
-        const isDoctor = col.key === 'doctor';
-        const doctorStyle = isDoctor ? doctorColorStyle(val) : '';
+        const isColorEnabled = COLOR_ENABLED_MASTER_KEYS.has(col.key);
+        const itemColorStyle = isColorEnabled ? masterColorStyle(col.key, val) : '';
         return `
-          <td class="${isDoctor ? 'doctor-color-cell' : ''}" style="${doctorStyle}" title="${escapeHtml(val || '-')}">
-            <select class="cell-select ${isDoctor ? 'doctor-color-select' : ''}" style="${doctorStyle}" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" title="${escapeHtml(val || '-')}">
+          <td class="${isColorEnabled ? 'master-color-cell' : ''}" style="${itemColorStyle}" title="${escapeHtml(val || '-')}">
+            <select class="cell-select ${isColorEnabled ? 'master-color-select' : ''}" style="${itemColorStyle}" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" title="${escapeHtml(val || '-')}">
               <option value="">-</option>
               ${masterOptions.map(opt => `<option value="${escapeHtml(opt)}" ${String(val) === String(opt) ? 'selected' : ''}>${escapeHtml(formatOptionLabel(col.key, opt))}</option>`).join('')}
             </select>
@@ -757,8 +758,8 @@
           <div class="meal-stat-title">🍚 主食形態内訳</div>
           <ul class="meal-stat-list">
             ${Object.entries(stats.foodMainCounts).map(([key, count]) => `
-              <li class="meal-stat-item">
-                <span>${key}</span>
+              <li class="meal-stat-item" style="${masterColorStyle('foodMain', key)}">
+                <span>${escapeHtml(key)}</span>
                 <strong class="font-num">${count} 名</strong>
               </li>
             `).join('')}
@@ -795,8 +796,8 @@
       elements.mealTableBody.innerHTML = residents.map(r => `
         <tr>
           <td><span class="room-badge">${r.room}</span></td>
-          <td style="font-weight: 700;">${r.name}</td>
-          <td><span class="tag-food">${r.foodMain || '米飯'}</span></td>
+          <td style="font-weight: 700;">${escapeHtml(r.name)}</td>
+          <td><span class="tag-food" style="${masterColorStyle('foodMain', r.foodMain || '米飯')}">${escapeHtml(r.foodMain || '米飯')}</span></td>
           <td><span class="tag-food">${r.foodSide || '普通'}</span></td>
           <td>${r.foodThick && r.foodThick.includes('あり') ? '<span class="tag-thick">あり</span>' : 'なし'}</td>
           <td>${r.earlyFood ? '<span class="tag-early">早出し</span>' : '通常'}</td>
@@ -828,7 +829,7 @@
           : `<span class="doctor-limit-badge normal">受診: ${group.length}名</span>`;
 
         return `
-          <div class="doctor-card" style="${doctorColorStyle(docName)}">
+          <div class="doctor-card" style="${masterColorStyle('doctor', docName)}">
             <div class="doctor-card-header" style="border-bottom-color: currentColor;">
               <span class="doctor-name" style="color: inherit;">🏥 ${escapeHtml(docName)}</span>
               ${limitNotice}
@@ -1386,7 +1387,6 @@
     if (!container) return;
 
     const masters = window.DataStore.getMasters();
-    const doctorColors = window.DataStore.getDoctorColors();
     const columns = window.DataStore.getColumns();
     const colMap = {};
     columns.forEach(c => { colMap[c.key] = c.label; });
@@ -1414,18 +1414,18 @@
           <div class="master-tag-list">
             ${items.map(item => {
               const encodedItem = encodeURIComponent(item);
-              const isDoctor = key === 'doctor';
-              const currentColor = isDoctor ? window.DataStore.getDoctorColor(item) : '';
-              const isCustomColor = isDoctor && Boolean(doctorColors[item]);
+              const isColorEnabled = COLOR_ENABLED_MASTER_KEYS.has(key);
+              const currentColor = isColorEnabled ? window.DataStore.getMasterItemColor(key, item) : '';
+              const isCustomColor = isColorEnabled && window.DataStore.hasMasterItemColor(key, item);
               return `
-                <span class="master-tag ${isDoctor ? 'doctor-master-tag' : ''}" style="${isDoctor ? doctorColorStyle(item) : ''}">
+                <span class="master-tag ${isColorEnabled ? 'colored-master-tag' : ''}" style="${isColorEnabled ? masterColorStyle(key, item) : ''}">
                   ${escapeHtml(item)}
-                  ${isDoctor ? `
-                    <label class="doctor-color-control" title="${escapeHtml(item)}の背景色を選ぶ">
+                  ${isColorEnabled ? `
+                    <label class="master-color-control" title="${escapeHtml(item)}の背景色を選ぶ">
                       <span>色</span>
-                      <input type="color" value="${currentColor}" data-doctor="${encodedItem}" onchange="window.EarthApp.setDoctorColor(decodeURIComponent(this.dataset.doctor), this.value)">
+                      <input type="color" value="${currentColor}" data-master-key="${escapeHtml(key)}" data-master-item="${encodedItem}" onchange="window.EarthApp.setMasterColor(this.dataset.masterKey, decodeURIComponent(this.dataset.masterItem), this.value)">
                     </label>
-                    <button type="button" class="doctor-color-reset" data-doctor="${encodedItem}" onclick="window.EarthApp.resetDoctorColor(decodeURIComponent(this.dataset.doctor))" ${isCustomColor ? '' : 'disabled'} title="自動色に戻す">↺</button>
+                    <button type="button" class="master-color-reset" data-master-key="${escapeHtml(key)}" data-master-item="${encodedItem}" onclick="window.EarthApp.resetMasterColor(this.dataset.masterKey, decodeURIComponent(this.dataset.masterItem))" ${isCustomColor ? '' : 'disabled'} title="自動色に戻す">↺</button>
                   ` : ''}
                   <button type="button" class="master-tag-remove" data-master-key="${escapeHtml(key)}" data-master-item="${encodedItem}" onclick="window.EarthApp.removeMaster(this.dataset.masterKey, decodeURIComponent(this.dataset.masterItem))" title="削除">×</button>
                 </span>
@@ -1821,7 +1821,7 @@
       const hasActiveFilter = state.searchQuery || state.filterFloor !== 'all' ||
         state.filterCareLevel !== 'all' || state.filterDoctor !== 'all' || state.filterFood !== 'all';
       const canKeepCurrentTable = state.activeTab === 'all' && hint && hint.type === 'resident-field' &&
-        !hasActiveFilter && state.sortField !== hint.fieldKey && !['room', 'name', 'birthday', 'doctor'].includes(hint.fieldKey);
+        !hasActiveFilter && state.sortField !== hint.fieldKey && !['room', 'name', 'birthday', 'doctor', 'dental', 'equipment', 'foodMain'].includes(hint.fieldKey);
       if (canKeepCurrentTable) {
         renderStatistics();
         return;
@@ -1936,18 +1936,18 @@
     `).join('');
   }
 
-  function setDoctorColor(doctorName, color) {
-    if (!window.DataStore.setDoctorColor(doctorName, color)) {
+  function setMasterColor(masterKey, item, color) {
+    if (!window.DataStore.setMasterItemColor(masterKey, item, color)) {
       showToast('色を設定できませんでした', 'error');
       return;
     }
-    showToast(`「${doctorName}」の背景色を更新しました`);
+    showToast(`「${item}」の背景色を更新しました`);
     renderMasterManager();
   }
 
-  function resetDoctorColor(doctorName) {
-    window.DataStore.setDoctorColor(doctorName, '');
-    showToast(`「${doctorName}」を自動色に戻しました`);
+  function resetMasterColor(masterKey, item) {
+    window.DataStore.setMasterItemColor(masterKey, item, '');
+    showToast(`「${item}」を自動色に戻しました`);
     renderMasterManager();
   }
 
@@ -2193,8 +2193,8 @@
     removeColumn,
     addMaster,
     removeMaster,
-    setDoctorColor,
-    resetDoctorColor,
+    setMasterColor,
+    resetMasterColor,
     restoreSnapshot,
     openEditModal,
     openFloorBoardModal,
