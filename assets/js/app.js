@@ -125,6 +125,16 @@
     })[char]);
   }
 
+  function doctorColorStyle(doctorName) {
+    const background = window.DataStore.getDoctorColor(doctorName);
+    const hex = background.replace('#', '');
+    const red = parseInt(hex.slice(0, 2), 16);
+    const green = parseInt(hex.slice(2, 4), 16);
+    const blue = parseInt(hex.slice(4, 6), 16);
+    const text = ((red * 299 + green * 587 + blue * 114) / 1000) >= 150 ? '#172033' : '#FFFFFF';
+    return `background-color:${background};color:${text};border-color:${text === '#FFFFFF' ? 'rgba(255,255,255,.6)' : 'rgba(23,32,51,.2)'};`;
+  }
+
   function formatFloorEventDate(dateValue) {
     if (!dateValue) return '日付未設定';
     const date = new Date(`${dateValue}T00:00:00`);
@@ -537,11 +547,13 @@
         };
 
         // リスト選択式セルのレンダリング
+        const isDoctor = col.key === 'doctor';
+        const doctorStyle = isDoctor ? doctorColorStyle(val) : '';
         return `
-          <td title="${val || '-'}">
-            <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" title="${val || '-'}">
+          <td class="${isDoctor ? 'doctor-color-cell' : ''}" style="${doctorStyle}" title="${escapeHtml(val || '-')}">
+            <select class="cell-select ${isDoctor ? 'doctor-color-select' : ''}" style="${doctorStyle}" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" title="${escapeHtml(val || '-')}">
               <option value="">-</option>
-              ${masterOptions.map(opt => `<option value="${opt}" ${String(val) === String(opt) ? 'selected' : ''}>${formatOptionLabel(col.key, opt)}</option>`).join('')}
+              ${masterOptions.map(opt => `<option value="${escapeHtml(opt)}" ${String(val) === String(opt) ? 'selected' : ''}>${escapeHtml(formatOptionLabel(col.key, opt))}</option>`).join('')}
             </select>
           </td>
         `;
@@ -816,17 +828,17 @@
           : `<span class="doctor-limit-badge normal">受診: ${group.length}名</span>`;
 
         return `
-          <div class="doctor-card">
-            <div class="doctor-card-header">
-              <span class="doctor-name">🏥 ${docName}</span>
+          <div class="doctor-card" style="${doctorColorStyle(docName)}">
+            <div class="doctor-card-header" style="border-bottom-color: currentColor;">
+              <span class="doctor-name" style="color: inherit;">🏥 ${escapeHtml(docName)}</span>
               ${limitNotice}
             </div>
             <div style="display: flex; flex-direction: column; gap: 8px;">
               ${group.map(res => `
-                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 6px 8px; background: #fafbfc; border-radius: 8px;">
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 13px; padding: 6px 8px; background: #fafbfc; color: var(--earth-ink); border-radius: 8px;">
                   <div>
                     <span class="room-badge" style="font-size:11px; padding:2px 5px;">${res.room}</span>
-                    <strong style="margin-left: 6px;">${res.name}</strong>
+                    <strong style="margin-left: 6px;">${escapeHtml(res.name)}</strong>
                   </div>
                   <div>
                     ${getCareLevelBadge(res.careLevel)}
@@ -1374,6 +1386,7 @@
     if (!container) return;
 
     const masters = window.DataStore.getMasters();
+    const doctorColors = window.DataStore.getDoctorColors();
     const columns = window.DataStore.getColumns();
     const colMap = {};
     columns.forEach(c => { colMap[c.key] = c.label; });
@@ -1399,12 +1412,25 @@
             <small style="color: var(--earth-muted); font-weight: normal;">登録数: ${items.length} 件</small>
           </div>
           <div class="master-tag-list">
-            ${items.map(item => `
-              <span class="master-tag">
-                ${item}
-                <button type="button" class="master-tag-remove" onclick="window.EarthApp.removeMaster('${key}', '${item}')" title="削除">×</button>
-              </span>
-            `).join('')}
+            ${items.map(item => {
+              const encodedItem = encodeURIComponent(item);
+              const isDoctor = key === 'doctor';
+              const currentColor = isDoctor ? window.DataStore.getDoctorColor(item) : '';
+              const isCustomColor = isDoctor && Boolean(doctorColors[item]);
+              return `
+                <span class="master-tag ${isDoctor ? 'doctor-master-tag' : ''}" style="${isDoctor ? doctorColorStyle(item) : ''}">
+                  ${escapeHtml(item)}
+                  ${isDoctor ? `
+                    <label class="doctor-color-control" title="${escapeHtml(item)}の背景色を選ぶ">
+                      <span>色</span>
+                      <input type="color" value="${currentColor}" data-doctor="${encodedItem}" onchange="window.EarthApp.setDoctorColor(decodeURIComponent(this.dataset.doctor), this.value)">
+                    </label>
+                    <button type="button" class="doctor-color-reset" data-doctor="${encodedItem}" onclick="window.EarthApp.resetDoctorColor(decodeURIComponent(this.dataset.doctor))" ${isCustomColor ? '' : 'disabled'} title="自動色に戻す">↺</button>
+                  ` : ''}
+                  <button type="button" class="master-tag-remove" data-master-key="${escapeHtml(key)}" data-master-item="${encodedItem}" onclick="window.EarthApp.removeMaster(this.dataset.masterKey, decodeURIComponent(this.dataset.masterItem))" title="削除">×</button>
+                </span>
+              `;
+            }).join('')}
           </div>
           <form class="master-add-form" onsubmit="event.preventDefault(); window.EarthApp.addMaster('${key}', this.itemValue.value); this.reset();">
             <input type="text" name="itemValue" class="form-input" style="padding: 6px 12px; font-size: 13px;" required placeholder="新しい選択肢を入力...">
@@ -1795,7 +1821,7 @@
       const hasActiveFilter = state.searchQuery || state.filterFloor !== 'all' ||
         state.filterCareLevel !== 'all' || state.filterDoctor !== 'all' || state.filterFood !== 'all';
       const canKeepCurrentTable = state.activeTab === 'all' && hint && hint.type === 'resident-field' &&
-        !hasActiveFilter && state.sortField !== hint.fieldKey && !['room', 'name', 'birthday'].includes(hint.fieldKey);
+        !hasActiveFilter && state.sortField !== hint.fieldKey && !['room', 'name', 'birthday', 'doctor'].includes(hint.fieldKey);
       if (canKeepCurrentTable) {
         renderStatistics();
         return;
@@ -1908,6 +1934,21 @@
                 title="この予定を削除">削除</button>
       </div>
     `).join('');
+  }
+
+  function setDoctorColor(doctorName, color) {
+    if (!window.DataStore.setDoctorColor(doctorName, color)) {
+      showToast('色を設定できませんでした', 'error');
+      return;
+    }
+    showToast(`「${doctorName}」の背景色を更新しました`);
+    renderMasterManager();
+  }
+
+  function resetDoctorColor(doctorName) {
+    window.DataStore.setDoctorColor(doctorName, '');
+    showToast(`「${doctorName}」を自動色に戻しました`);
+    renderMasterManager();
   }
 
   function openFloorBoardModal(residentId) {
@@ -2152,6 +2193,8 @@
     removeColumn,
     addMaster,
     removeMaster,
+    setDoctorColor,
+    resetDoctorColor,
     restoreSnapshot,
     openEditModal,
     openFloorBoardModal,

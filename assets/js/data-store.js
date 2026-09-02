@@ -7,6 +7,10 @@
   'use strict';
 
   const STORAGE_KEY = 'earth_residents_management_data_v1';
+  const DOCTOR_COLOR_PALETTE = [
+    '#DBEAFE', '#DCFCE7', '#FEF3C7', '#FCE7F3', '#EDE9FE',
+    '#CFFAFE', '#FFEDD5', '#E0E7FF', '#F3E8FF', '#D1FAE5', '#FFE4E6'
+  ];
 
   // 項目マスタの初期デフォルト定義
   const DEFAULT_MASTERS = {
@@ -205,6 +209,7 @@
   const DEFAULT_DATA = {
     columns: DEFAULT_COLUMNS,
     masters: DEFAULT_MASTERS,
+    doctorColors: {},
     snapshots: [], // ワイズマンインポート前のデータスナップショット履歴
     residents: [
       { id: "res_201", room: "201", floor: 2, name: "熊木　勝", entryDate: "2026/07/14", careLevel: "介4", birthday: "S24/06/08", age: 77, doctor: "井上Dr.　城西", dental: "", equipment: "施　車椅子", foodMain: "米飯", foodSide: "普通", foodThick: "", airConditioner: "〇", earlyFood: false, status: "入居中", note: "" },
@@ -342,6 +347,9 @@
             if (!parsed.masters || typeof parsed.masters !== 'object') {
               parsed.masters = JSON.parse(JSON.stringify(DEFAULT_MASTERS));
             }
+            if (!parsed.doctorColors || typeof parsed.doctorColors !== 'object' || Array.isArray(parsed.doctorColors)) {
+              parsed.doctorColors = {};
+            }
             // スナップショット履歴の初期化
             if (!parsed.snapshots || !Array.isArray(parsed.snapshots)) {
               parsed.snapshots = [];
@@ -468,6 +476,7 @@
         residents: this.data.residents || [],
         columns: this.data.columns || DEFAULT_COLUMNS,
         masters: this.data.masters || DEFAULT_MASTERS,
+        doctorColors: this.data.doctorColors || {},
         moveOutLogs: this.data.moveOutLogs || [],
         snapshots: Array.isArray(this.data.snapshots) ? this.data.snapshots.slice(0, 10) : [],
         lastUpdated: this.data.lastUpdated || new Date().toISOString()
@@ -484,6 +493,9 @@
         ...cloudState,
         columns: Array.isArray(cloudState.columns) ? cloudState.columns : (this.data.columns || DEFAULT_COLUMNS),
         masters: cloudState.masters && typeof cloudState.masters === 'object' ? cloudState.masters : (this.data.masters || DEFAULT_MASTERS),
+        doctorColors: cloudState.doctorColors && typeof cloudState.doctorColors === 'object' && !Array.isArray(cloudState.doctorColors)
+          ? cloudState.doctorColors
+          : (this.data.doctorColors || {}),
         moveOutLogs: Array.isArray(cloudState.moveOutLogs) ? cloudState.moveOutLogs : (this.data.moveOutLogs || []),
         snapshots: Array.isArray(cloudState.snapshots) ? cloudState.snapshots.slice(0, 10) : (this.data.snapshots || []),
         residents: ensureRoomInventory(cloudState.residents.map(resident => ({
@@ -530,7 +542,50 @@
     removeMasterItem(key, item) {
       if (!this.data.masters || !this.data.masters[key]) return;
       this.data.masters[key] = this.data.masters[key].filter(i => i !== item);
+      if (key === 'doctor' && this.data.doctorColors) {
+        delete this.data.doctorColors[item];
+      }
       this.saveData();
+    }
+
+    // --- 訪問医カラー管理（未設定時は名前から安定した自動色を選択） ---
+    getDoctorColors() {
+      return this.data.doctorColors || {};
+    }
+
+    getDoctorColor(doctorName) {
+      const name = String(doctorName || '').trim();
+      if (!name) return '#F3F4F6';
+      const customColor = this.getDoctorColors()[name];
+      if (/^#[0-9A-F]{6}$/i.test(customColor || '')) return customColor.toUpperCase();
+
+      const masterIndex = this.getMaster('doctor').indexOf(name);
+      if (masterIndex >= 0) return DOCTOR_COLOR_PALETTE[masterIndex % DOCTOR_COLOR_PALETTE.length];
+
+      let hash = 0;
+      for (let i = 0; i < name.length; i++) {
+        hash = ((hash * 31) + name.charCodeAt(i)) >>> 0;
+      }
+      return DOCTOR_COLOR_PALETTE[hash % DOCTOR_COLOR_PALETTE.length];
+    }
+
+    setDoctorColor(doctorName, color) {
+      const name = String(doctorName || '').trim();
+      const normalizedColor = String(color || '').trim().toUpperCase();
+      if (!name) return false;
+      if (!this.data.doctorColors || typeof this.data.doctorColors !== 'object') {
+        this.data.doctorColors = {};
+      }
+
+      if (!normalizedColor) {
+        delete this.data.doctorColors[name];
+      } else if (/^#[0-9A-F]{6}$/.test(normalizedColor)) {
+        this.data.doctorColors[name] = normalizedColor;
+      } else {
+        return false;
+      }
+      this.saveData({ renderHint: { type: 'doctor-color', doctorName: name } });
+      return true;
     }
 
     // --- 列（カラム）管理＆表示切り替え＆並び替え ---
