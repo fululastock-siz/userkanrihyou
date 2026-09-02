@@ -482,9 +482,10 @@ body {
 }
 
 .data-table td {
-  padding: 6px 10px;
+  padding: 4px 6px;
   border-bottom: 1px solid rgba(196, 216, 206, 0.6);
   vertical-align: middle;
+  font-size: 13px;
 }
 
 /* 1行ごとの交互配色（白 / 薄いブルー） */
@@ -510,7 +511,7 @@ body {
 }
 
 /* ==========================================================================
-   固定列（部屋番号・名前）の横スクロール固定スタイル（Sticky Left）
+   固定列（部屋番号・名前）の横スクロール固定スタイル（Sticky Left - コンパクト化）
    ========================================================================== */
 
 /* ヘッダー固定 */
@@ -519,23 +520,24 @@ body {
   left: 0;
   top: 0;
   z-index: 30;
-  width: 80px;
-  min-width: 80px;
-  max-width: 80px;
+  width: 68px;
+  min-width: 68px;
+  max-width: 68px;
   background-color: #e2ede5;
   border-right: 1px solid var(--earth-border);
 }
 
 .data-table th.sticky-col-name {
   position: sticky;
-  left: 80px;
+  left: 68px;
   top: 0;
   z-index: 30;
-  width: 140px;
-  min-width: 140px;
+  width: 115px;
+  min-width: 115px;
+  max-width: 115px;
   background-color: #e2ede5;
   border-right: 2px solid #a3beaf;
-  box-shadow: 4px 0 6px -2px rgba(0, 0, 0, 0.12);
+  box-shadow: 3px 0 5px -2px rgba(0, 0, 0, 0.12);
 }
 
 /* データ行固定（奇数行：白） */
@@ -543,22 +545,23 @@ body {
   position: sticky;
   left: 0;
   z-index: 15;
-  width: 80px;
-  min-width: 80px;
-  max-width: 80px;
+  width: 68px;
+  min-width: 68px;
+  max-width: 68px;
   background-color: #ffffff;
   border-right: 1px solid var(--earth-border);
 }
 
 .data-table tbody tr:nth-child(odd) td.sticky-col-name {
   position: sticky;
-  left: 80px;
+  left: 68px;
   z-index: 15;
-  width: 140px;
-  min-width: 140px;
+  width: 115px;
+  min-width: 115px;
+  max-width: 115px;
   background-color: #ffffff;
   border-right: 2px solid #a3beaf;
-  box-shadow: 4px 0 6px -2px rgba(0, 0, 0, 0.12);
+  box-shadow: 3px 0 5px -2px rgba(0, 0, 0, 0.12);
 }
 
 /* データ行固定（偶数行：薄いブルー） */
@@ -566,22 +569,23 @@ body {
   position: sticky;
   left: 0;
   z-index: 15;
-  width: 80px;
-  min-width: 80px;
-  max-width: 80px;
+  width: 68px;
+  min-width: 68px;
+  max-width: 68px;
   background-color: #f0f7ff;
   border-right: 1px solid var(--earth-border);
 }
 
 .data-table tbody tr:nth-child(even) td.sticky-col-name {
   position: sticky;
-  left: 80px;
+  left: 68px;
   z-index: 15;
-  width: 140px;
-  min-width: 140px;
+  width: 115px;
+  min-width: 115px;
+  max-width: 115px;
   background-color: #f0f7ff;
   border-right: 2px solid #a3beaf;
-  box-shadow: 4px 0 6px -2px rgba(0, 0, 0, 0.12);
+  box-shadow: 3px 0 5px -2px rgba(0, 0, 0, 0.12);
 }
 
 /* 行ホバー時の固定列ハイライト */
@@ -600,13 +604,13 @@ body {
   background-color: #f1f5f9;
 }
 
-/* インライン直接編集用コントロール */
+/* インライン直接編集用コントロール（コンパクト最適化） */
 .cell-input {
   width: 100%;
   border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 6px 8px;
-  font-size: 13px;
+  border-radius: 4px;
+  padding: 3px 4px;
+  font-size: 12.5px;
   font-family: inherit;
   color: var(--earth-ink);
   background: transparent;
@@ -622,23 +626,23 @@ body {
 .cell-input:focus {
   border-color: var(--earth-green);
   background-color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(36, 125, 27, 0.15);
+  box-shadow: 0 0 0 2px rgba(36, 125, 27, 0.15);
 }
 
 .cell-select {
   width: 100%;
   border: 1px solid transparent;
-  border-radius: 6px;
-  padding: 6px 20px 6px 8px;
-  font-size: 12.5px;
+  border-radius: 4px;
+  padding: 3px 12px 3px 3px;
+  font-size: 12px;
   font-family: inherit;
   font-weight: 700;
   color: var(--earth-ink);
   background-color: transparent;
   background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23247d1b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
   background-repeat: no-repeat;
-  background-position: right 6px center;
-  background-size: 8px auto;
+  background-position: right 2px center;
+  background-size: 7px auto;
   appearance: none;
   cursor: pointer;
   outline: none;
@@ -653,7 +657,7 @@ body {
 .cell-select:focus {
   border-color: var(--earth-green);
   background-color: #ffffff;
-  box-shadow: 0 0 0 3px rgba(36, 125, 27, 0.15);
+  box-shadow: 0 0 0 2px rgba(36, 125, 27, 0.15);
 }
 
 .cell-checkbox {

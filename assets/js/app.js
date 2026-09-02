@@ -229,7 +229,7 @@
     const columns = window.DataStore.getVisibleColumns();
     const masters = window.DataStore.getMasters();
 
-    // 1. ヘッダーの描画（ドラッグ並び替え対応）
+    // 1. ヘッダーの描画（部屋・名前は固定＆移動不可、他列はドラッグ並び替え対応）
     thead.innerHTML = `
       <tr>
         ${columns.map((col, idx) => {
@@ -238,25 +238,32 @@
           const removeBtn = !col.fixed 
             ? `<button class="btn-remove-col" onclick="event.stopPropagation(); window.EarthApp.removeColumn('${col.key}', '${col.label}')" title="この項目を削除">×</button>` 
             : '';
+          const isFixedCol = col.key === 'room' || col.key === 'name';
           const stickyClass = col.key === 'room' ? 'sticky-col-room' : (col.key === 'name' ? 'sticky-col-name' : '');
+          const dragAttr = isFixedCol ? 'draggable="false"' : 'draggable="true"';
+          const cursorStyle = isFixedCol ? 'cursor: pointer;' : 'cursor: move;';
+          const handleHtml = !isFixedCol ? '<span class="drag-handle" title="ドラッグして列を移動">⠿</span>' : '';
 
           return `
-            <th class="${isSortable ? 'sortable' : ''} ${stickyClass}" data-col-key="${col.key}" data-sort="${col.key}" draggable="true" style="width: ${col.width || 'auto'}; cursor: move;" title="クリックで並び替え、長押し/ドラッグで列の移動">
-              <div class="col-header-cell">
-                <span class="drag-handle" title="ドラッグして列を移動">⠿</span>
-                <span style="flex:1; margin: 0 4px;">${col.label}${sortIndicator}</span>
+            <th class="${isSortable ? 'sortable' : ''} ${stickyClass}" data-col-key="${col.key}" data-sort="${col.key}" ${dragAttr} style="width: ${col.width || 'auto'}; ${cursorStyle}" title="${isFixedCol ? '固定列（クリックで並び替え）' : 'クリックで並び替え、ドラッグで列の移動'}">
+              <div class="col-header-cell" style="justify-content: ${isFixedCol ? 'center' : 'space-between'};">
+                ${handleHtml}
+                <span style="flex:1; margin: 0 2px; text-align: ${isFixedCol ? 'center' : 'left'}; font-size: 12.5px;">${col.label}${sortIndicator}</span>
                 ${removeBtn}
               </div>
             </th>
           `;
         }).join('')}
-        <th class="action-col" style="text-align: right; width: 120px;">操作</th>
+        <th class="action-col" style="text-align: right; width: 110px;">操作</th>
       </tr>
     `;
 
     // ヘッダーのドラッグ＆ドロップイベント設定
     const thList = thead.querySelectorAll('th[data-col-key]');
     thList.forEach(th => {
+      const colKey = th.dataset.colKey;
+      const isFixedCol = colKey === 'room' || colKey === 'name';
+
       // ソートクリック
       th.addEventListener('click', (e) => {
         if (e.target.closest('.drag-handle') || e.target.closest('.btn-remove-col')) return;
@@ -269,6 +276,9 @@
         }
         renderAllResidentsTable();
       });
+
+      // 固定列（部屋・名前）はドラッグ＆ドロップ処理をスキップ
+      if (isFixedCol) return;
 
       // ドラッグ開始
       th.addEventListener('dragstart', (e) => {
@@ -302,6 +312,12 @@
         e.preventDefault();
         const targetKey = th.dataset.colKey;
         th.classList.remove('drag-over-left', 'drag-over-right', 'is-dragging');
+
+        // 固定列へのドロップや固定列からのドラッグを防止
+        if (targetKey === 'room' || targetKey === 'name' || draggedColKey === 'room' || draggedColKey === 'name') {
+          draggedColKey = null;
+          return;
+        }
 
         if (draggedColKey && targetKey && draggedColKey !== targetKey) {
           window.DataStore.reorderColumns(draggedColKey, targetKey);

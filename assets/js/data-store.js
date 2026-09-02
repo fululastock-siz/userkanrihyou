@@ -85,22 +85,22 @@
     ]
   };
 
-  // カラムの初期デフォルト定義
+  // カラムの初期デフォルト定義（コンパクト最適化）
   const DEFAULT_COLUMNS = [
-    { key: 'room', label: '部屋', type: 'text', fixed: true, sortable: true, width: '80px' },
-    { key: 'name', label: '名前 (フルネーム)', type: 'text', fixed: true, sortable: true, width: '140px' },
-    { key: 'careLevel', label: '介護度', type: 'select', masterKey: 'careLevel', options: ['', '介1', '介2', '介3', '介4', '介5', '自立', '支1', '支2'], sortable: true, width: '95px' },
-    { key: 'age', label: '年齢', type: 'number', sortable: true, width: '75px' },
-    { key: 'birthday', label: '生年月日', type: 'text', sortable: false, width: '110px' },
-    { key: 'entryDate', label: '入居日', type: 'text', sortable: true, width: '110px' },
-    { key: 'doctor', label: '訪問医', type: 'select', masterKey: 'doctor', sortable: false, width: '170px' },
-    { key: 'dental', label: '口腔衛生', type: 'select', masterKey: 'dental', sortable: false, width: '140px' },
-    { key: 'equipment', label: '福祉用具', type: 'select', masterKey: 'equipment', sortable: false, width: '180px' },
-    { key: 'foodMain', label: 'ごはん', type: 'select', masterKey: 'foodMain', sortable: false, width: '110px' },
-    { key: 'foodSide', label: 'おかず', type: 'select', masterKey: 'foodSide', sortable: false, width: '110px' },
-    { key: 'foodThick', label: 'とろみ', type: 'select', masterKey: 'foodThick', sortable: false, width: '95px' },
-    { key: 'airConditioner', label: 'エアコン', type: 'select', masterKey: 'airConditioner', sortable: false, width: '95px' },
-    { key: 'earlyFood', label: '早出し', type: 'checkbox', sortable: false, width: '80px' }
+    { key: 'room', label: '部屋', type: 'text', fixed: true, sortable: true, width: '68px' },
+    { key: 'name', label: '名前', type: 'text', fixed: true, sortable: true, width: '115px' },
+    { key: 'careLevel', label: '介護度', type: 'select', masterKey: 'careLevel', options: ['', '介1', '介2', '介3', '介4', '介5', '自立', '支1', '支2'], sortable: true, width: '65px' },
+    { key: 'age', label: '年齢', type: 'number', sortable: true, width: '52px' },
+    { key: 'birthday', label: '生年月日', type: 'text', sortable: false, width: '95px' },
+    { key: 'entryDate', label: '入居日', type: 'text', sortable: true, width: '95px' },
+    { key: 'doctor', label: '訪問医', type: 'select', masterKey: 'doctor', sortable: false, width: '135px' },
+    { key: 'dental', label: '口腔衛生', type: 'select', masterKey: 'dental', sortable: false, width: '120px' },
+    { key: 'equipment', label: '福祉用具', type: 'select', masterKey: 'equipment', sortable: false, width: '140px' },
+    { key: 'foodMain', label: 'ごはん', type: 'select', masterKey: 'foodMain', sortable: false, width: '85px' },
+    { key: 'foodSide', label: 'おかず', type: 'select', masterKey: 'foodSide', sortable: false, width: '85px' },
+    { key: 'foodThick', label: 'とろみ', type: 'select', masterKey: 'foodThick', sortable: false, width: '75px' },
+    { key: 'airConditioner', label: 'エアコン', type: 'select', masterKey: 'airConditioner', sortable: false, width: '65px' },
+    { key: 'earlyFood', label: '早出し', type: 'checkbox', sortable: false, width: '65px' }
   ];
 
   // デフォルト初期データ（Googleスプレッドシートより抽出）
@@ -202,6 +202,16 @@
             // カラム定義が存在しない古いデータの場合はDEFAULT_COLUMNSを適用
             if (!parsed.columns || !Array.isArray(parsed.columns)) {
               parsed.columns = DEFAULT_COLUMNS;
+            } else {
+              // 既存カラム定義の幅やラベル（「名前」）を最新のコンパクト定義で同期
+              parsed.columns.forEach(c => {
+                const def = DEFAULT_COLUMNS.find(d => d.key === c.key);
+                if (def) {
+                  c.label = def.label;
+                  c.width = def.width;
+                  c.fixed = def.fixed;
+                }
+              });
             }
             // マスタが存在しない場合は初期マスタをセット
             if (!parsed.masters || typeof parsed.masters !== 'object') {
@@ -362,10 +372,14 @@
 
     reorderColumns(fromKey, toKey) {
       if (!this.data.columns) return;
+      // 部屋と名前は左端固定列のため、移動および割り込みを完全に禁止
+      if (fromKey === 'room' || fromKey === 'name' || toKey === 'room' || toKey === 'name') {
+        return;
+      }
       const cols = [...this.data.columns];
       const fromIdx = cols.findIndex(c => c.key === fromKey);
       const toIdx = cols.findIndex(c => c.key === toKey);
-      if (fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx) {
+      if (fromIdx >= 2 && toIdx >= 2 && fromIdx !== toIdx) {
         const [moved] = cols.splice(fromIdx, 1);
         cols.splice(toIdx, 0, moved);
         this.data.columns = cols;
