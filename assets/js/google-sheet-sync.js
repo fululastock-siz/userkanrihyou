@@ -287,10 +287,13 @@
           return { unchanged: true, residents: window.DataStore.getAllResidents() };
         }
 
+        let cloudInventoryExpanded = false;
         this.isApplyingCloudData = true;
         try {
           if (json.data && Array.isArray(json.data.residents)) {
+            const cloudRooms = new Set(json.data.residents.map(resident => String(resident.room)));
             window.DataStore.applyCloudState(json.data);
+            cloudInventoryExpanded = window.DataStore.getAllResidents().some(resident => !cloudRooms.has(String(resident.room)));
             this.lastCloudRevision = json.revision || null;
           } else if (Array.isArray(json.residents) && json.residents.length > 0) {
             // 旧GASとの互換モード。既存の居室メモ等はマージで保持する
@@ -303,6 +306,10 @@
 
         this.status = 'synced';
         this.saveSettings({ lastSyncTime: new Date().toISOString() });
+        if (cloudInventoryExpanded) {
+          this.markPendingWrite();
+          this.triggerAutoPush({ alreadyMarked: true });
+        }
         if (json.storageMode === 'legacy' || (!json.data && Array.isArray(json.residents))) {
           this.triggerAutoPush({ alreadyMarked: true });
         }

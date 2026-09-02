@@ -285,6 +285,33 @@
     lastUpdated: new Date().toISOString()
   };
 
+  function ensureRoomInventory(residents) {
+    const result = Array.isArray(residents) ? residents : [];
+    const existingRooms = new Set(result.map(resident => String(resident.room)));
+    [2, 3].forEach(floor => {
+      for (let number = 1; number <= 25; number++) {
+        const room = String(floor * 100 + number);
+        if (existingRooms.has(room)) continue;
+        result.push({
+          id: `res_${room}`,
+          room,
+          floor,
+          name: '',
+          status: '空室',
+          floorMemo: '',
+          floorEvents: [],
+          purchaseRequest: false,
+          cleaningStatus: '',
+          plannedResidentName: '',
+          plannedEntryDate: '',
+          plannedResidentNote: ''
+        });
+      }
+    });
+    result.sort((a, b) => parseInt(a.room, 10) - parseInt(b.room, 10));
+    return result;
+  }
+
   class DataStore {
     constructor() {
       this.listeners = [];
@@ -349,6 +376,7 @@
                 }
               }
             });
+            parsed.residents = ensureRoomInventory(parsed.residents);
             return parsed;
           }
         }
@@ -386,6 +414,7 @@
           }
         }
       });
+      defaultObj.residents = ensureRoomInventory(defaultObj.residents);
       return defaultObj;
     }
 
@@ -457,7 +486,7 @@
         masters: cloudState.masters && typeof cloudState.masters === 'object' ? cloudState.masters : (this.data.masters || DEFAULT_MASTERS),
         moveOutLogs: Array.isArray(cloudState.moveOutLogs) ? cloudState.moveOutLogs : (this.data.moveOutLogs || []),
         snapshots: Array.isArray(cloudState.snapshots) ? cloudState.snapshots.slice(0, 10) : (this.data.snapshots || []),
-        residents: cloudState.residents.map(resident => ({
+        residents: ensureRoomInventory(cloudState.residents.map(resident => ({
           ...resident,
           floorMemo: typeof resident.floorMemo === 'string' ? resident.floorMemo : '',
           floorEvents: Array.isArray(resident.floorEvents) ? resident.floorEvents : [],
@@ -466,7 +495,7 @@
           plannedResidentName: typeof resident.plannedResidentName === 'string' ? resident.plannedResidentName : '',
           plannedEntryDate: typeof resident.plannedEntryDate === 'string' ? resident.plannedEntryDate : '',
           plannedResidentNote: typeof resident.plannedResidentNote === 'string' ? resident.plannedResidentNote : ''
-        }))
+        })))
       };
 
       this.data = nextData;
