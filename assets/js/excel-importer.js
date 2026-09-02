@@ -59,20 +59,20 @@
     return str;
   }
 
-  // 介護度の正規化 (1〜5 または 要介護1〜5、要支援1〜2)
+  // 介護度の正規化 (「介1」〜「介5」、要支援は「支1」「支2」、「自立」)
   function normalizeCareLevel(val) {
-    if (val === null || val === undefined || val === '') return null;
+    if (val === null || val === undefined || val === '') return '';
     const str = toHalfWidth(val);
-    if (str.includes('5')) return 5;
-    if (str.includes('4')) return 4;
-    if (str.includes('3')) return 3;
-    if (str.includes('2')) return 2;
-    if (str.includes('1')) return 1;
-    if (str.includes('支援2')) return '要支援2';
-    if (str.includes('支援1')) return '要支援1';
+    if (str.includes('5')) return '介5';
+    if (str.includes('4')) return '介4';
+    if (str.includes('3')) return '介3';
+    if (str.includes('2')) return '介2';
+    if (str.includes('1')) return '介1';
+    if (str.includes('支援2') || str.includes('支2')) return '支2';
+    if (str.includes('支援1') || str.includes('支1')) return '支1';
     if (str.includes('自立') || str.includes('非該当')) return '自立';
     const num = parseInt(str.replace(/[^0-9]/g, ''), 10);
-    return isNaN(num) ? null : num;
+    return !isNaN(num) && num >= 1 && num <= 5 ? `介${num}` : str;
   }
 
   class ExcelImporter {

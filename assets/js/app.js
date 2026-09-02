@@ -102,15 +102,17 @@
   }
 
   /**
-   * 介護度バッジHTML生成
+   * 介護度バッジHTML生成（「介1」〜「介5」省略表示）
    */
   function getCareLevelBadge(level) {
-    if (!level) return '<span class="badge badge-care badge-care-none">未設定</span>';
-    const num = parseInt(level, 10);
-    if (!isNaN(num) && num >= 1 && num <= 5) {
-      return `<span class="badge badge-care badge-care-${num}">要介護 ${num}</span>`;
-    }
-    return `<span class="badge badge-care badge-care-none">${level}</span>`;
+    if (!level) return '<span class="badge badge-care badge-care-none">-</span>';
+    const str = String(level).trim();
+    if (str === '介1' || str === '1' || str === '要介護1') return '<span class="badge badge-care badge-care-1">介1</span>';
+    if (str === '介2' || str === '2' || str === '要介護2') return '<span class="badge badge-care badge-care-2">介2</span>';
+    if (str === '介3' || str === '3' || str === '要介護3') return '<span class="badge badge-care badge-care-3">介3</span>';
+    if (str === '介4' || str === '4' || str === '要介護4') return '<span class="badge badge-care badge-care-4">介4</span>';
+    if (str === '介5' || str === '5' || str === '要介護5') return '<span class="badge badge-care badge-care-5">介5</span>';
+    return `<span class="badge badge-care badge-care-none">${str}</span>`;
   }
 
   /**
@@ -140,7 +142,10 @@
 
     // 介護度フィルター
     if (state.filterCareLevel !== 'all') {
-      list = list.filter(r => String(r.careLevel) === String(state.filterCareLevel));
+      list = list.filter(r => {
+        const c = String(r.careLevel || '');
+        return c === state.filterCareLevel || c === `介${state.filterCareLevel}` || c.includes(state.filterCareLevel);
+      });
     }
 
     // 訪問医フィルター
@@ -164,9 +169,14 @@
       let valA = a[state.sortField];
       let valB = b[state.sortField];
 
-      if (state.sortField === 'room' || state.sortField === 'age' || state.sortField === 'careLevel') {
+      if (state.sortField === 'room' || state.sortField === 'age') {
         valA = valA ? parseInt(valA, 10) : 0;
         valB = valB ? parseInt(valB, 10) : 0;
+      } else if (state.sortField === 'careLevel') {
+        const numA = valA ? parseInt(String(valA).replace(/[^0-9]/g, ''), 10) : 0;
+        const numB = valB ? parseInt(String(valB).replace(/[^0-9]/g, ''), 10) : 0;
+        valA = isNaN(numA) ? 0 : numA;
+        valB = isNaN(numB) ? 0 : numB;
       } else {
         valA = String(valA || '');
         valB = String(valB || '');
@@ -187,7 +197,7 @@
     const stats = window.DataStore.getStatistics();
     elements.statResidentCount.innerHTML = `${stats.totalCount} <span class="summary-card-unit">/ ${stats.capacity} 名</span>`;
     elements.statOccupancyRate.innerHTML = `${stats.occupancyRate} <span class="summary-card-unit">%</span>`;
-    elements.statAvgCare.innerHTML = `${stats.avgCare}`;
+    elements.statAvgCare.innerHTML = `${stats.avgCare} <small style="font-size:12px; font-weight:normal; color:var(--earth-muted);">(介${Math.round(stats.avgCare)})</small>`;
     elements.statAvgAge.innerHTML = `${stats.avgAge} <span class="summary-card-unit">歳</span>`;
     elements.statThickCount.innerHTML = `${stats.thickCount} <span class="summary-card-unit">名</span>`;
     elements.statEarlyCount.innerHTML = `${stats.earlyCount} <span class="summary-card-unit">名</span>`;
@@ -197,7 +207,7 @@
   let draggedColKey = null;
 
   /**
-   * 全体管理表のヘッダーおよびボディの描画（ドラッグ移動＆マスタ選択式対応）
+   * 全体管理表のヘッダーおよびボディの描画（ドラッグ移動＆全項目マスタ選択式対応）
    */
   function renderAllResidentsTable() {
     const thead = document.getElementById('resident-table-head');
@@ -324,28 +334,49 @@
           `;
         }
 
-        // 氏名
+        // 名前（必ずフルネーム表示）
         if (col.key === 'name') {
           return `
             <td>
-              <input type="text" class="cell-input" style="font-weight: 700; color: ${val ? 'var(--earth-ink)' : '#9ca3af'};" value="${val}"
+              <input type="text" class="cell-input" style="font-weight: 700; color: ${val ? 'var(--earth-ink)' : '#9ca3af'}; min-width: 120px;" value="${val}"
                 onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="(空室)">
             </td>
           `;
         }
 
-        // 介護度（選択式）
+        // 介護度（「介1」〜「介5」等の選択式）
         if (col.key === 'careLevel') {
+          const careList = masters.careLevel || ['介1', '介2', '介3', '介4', '介5', '自立', '支1', '支2'];
+          const currentCareStr = String(val || '').trim();
           return `
             <td>
-              <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
-                <option value="" ${!val ? 'selected' : ''}>未設定</option>
-                <option value="1" ${String(val) === '1' ? 'selected' : ''}>要介護 1</option>
-                <option value="2" ${String(val) === '2' ? 'selected' : ''}>要介護 2</option>
-                <option value="3" ${String(val) === '3' ? 'selected' : ''}>要介護 3</option>
-                <option value="4" ${String(val) === '4' ? 'selected' : ''}>要介護 4</option>
-                <option value="5" ${String(val) === '5' ? 'selected' : ''}>要介護 5</option>
+              <select class="cell-select" style="font-weight: bold;" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
+                <option value="" ${!currentCareStr ? 'selected' : ''}>-</option>
+                ${careList.map(opt => {
+                  const isSel = currentCareStr === opt || currentCareStr === opt.replace('介', '') || currentCareStr === `要介護${opt.replace('介', '')}`;
+                  return `<option value="${opt}" ${isSel ? 'selected' : ''}>${opt}</option>`;
+                }).join('')}
               </select>
+            </td>
+          `;
+        }
+
+        // 年齢
+        if (col.key === 'age') {
+          return `
+            <td>
+              <input type="number" class="cell-input font-num" value="${val}" style="width: 55px;"
+                onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="-">
+            </td>
+          `;
+        }
+
+        // 生年月日・入居日
+        if (col.key === 'birthday' || col.key === 'entryDate') {
+          return `
+            <td>
+              <input type="text" class="cell-input font-num" value="${val}" style="font-size: 12px;"
+                onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="-">
             </td>
           `;
         }
@@ -386,67 +417,37 @@
           `;
         }
 
-        // 訪問医・口腔衛生・福祉用具・主食・副食などのマスタ選択式項目
+        // 訪問医・口腔衛生・福祉用具・主食・副食、およびその他の項目（マスタ連動ドロップダウン選択式）
         const masterKey = col.masterKey || col.key;
-        if (masters[masterKey] && Array.isArray(masters[masterKey])) {
-          const masterOptions = [...masters[masterKey]];
-          // 現在値がマスタに無ければ選択肢に含める
-          if (val && !masterOptions.includes(val)) {
-            masterOptions.unshift(val);
-          }
-
-          return `
-            <td>
-              <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
-                <option value="">-</option>
-                ${masterOptions.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}
-              </select>
-            </td>
-          `;
+        const masterOptions = masters[masterKey] ? [...masters[masterKey]] : (Array.isArray(col.options) ? [...col.options] : []);
+        
+        // 現在値がマスタに存在しない場合は一時的に選択肢に追加
+        if (val && !masterOptions.includes(String(val))) {
+          masterOptions.unshift(String(val));
         }
 
-        // カスタム選択式
-        if (col.type === 'select' && Array.isArray(col.options)) {
-          const optList = [...col.options];
-          if (val && !optList.includes(val)) optList.unshift(val);
-          return `
-            <td>
-              <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
-                <option value="">-</option>
-                ${optList.map(opt => `<option value="${opt}" ${String(val) === String(opt) ? 'selected' : ''}>${opt}</option>`).join('')}
-              </select>
-            </td>
-          `;
-        }
-
-        // カスタムチェックボックス
-        if (col.type === 'checkbox') {
-          return `
-            <td style="text-align: center;">
-              <input type="checkbox" class="cell-checkbox" ${val ? 'checked' : ''}
-                onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.checked)">
-            </td>
-          `;
-        }
-
-        // 数値型
-        if (col.type === 'number') {
-          return `
-            <td>
-              <input type="number" class="cell-input font-num" value="${val}"
-                onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="-">
-            </td>
-          `;
-        }
-
-        // 通常テキスト入力
+        // リスト選択式セルのレンダリング
         return `
           <td>
-            <input type="text" class="cell-input" value="${val}"
-              onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="-">
+            <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
+              <option value="">-</option>
+              ${masterOptions.map(opt => `<option value="${opt}" ${String(val) === String(opt) ? 'selected' : ''}>${opt}</option>`).join('')}
+            </select>
           </td>
         `;
       }).join('');
+
+      return `
+        <tr class="${isEmpty ? 'is-empty-room' : ''}">
+          ${cellsHtml}
+          <td class="action-col" style="text-align: right; white-space: nowrap;">
+            <button class="btn btn-outline btn-sm" onclick="window.EarthApp.openEditModal('${r.id}')" title="ダイアログで詳細確認">詳細</button>
+            ${!isEmpty ? `<button class="btn btn-danger btn-sm" onclick="window.EarthApp.openMoveOutModal('${r.id}')" title="退去・異動処理">退去</button>` : ''}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
 
       return `
         <tr class="${isEmpty ? 'is-empty-room' : ''}">
@@ -768,7 +769,12 @@
     if (!container) return;
 
     const masters = window.DataStore.getMasters();
+    const columns = window.DataStore.getColumns();
+    const colMap = {};
+    columns.forEach(c => { colMap[c.key] = c.label; });
+
     const masterLabels = {
+      careLevel: '🩺 介護度（介1〜介5等）',
       doctor: '🏥 訪問医（クリニック名・医師名）',
       dental: '🦷 口腔衛生（歯科医院名）',
       equipment: '♿ 福祉用具（車椅子・歩行器等）',
@@ -779,7 +785,8 @@
     };
 
     container.innerHTML = Object.entries(masters).map(([key, items]) => {
-      const label = masterLabels[key] || `📋 ${key}`;
+      const customColLabel = colMap[key];
+      const label = masterLabels[key] || (customColLabel ? `📋 ${customColLabel}` : `📋 ${key}`);
       return `
         <div class="master-section">
           <div class="master-title">
@@ -1049,7 +1056,7 @@
     if (btnOpenAddCol && addColModal) {
       btnOpenAddCol.addEventListener('click', () => {
         if (addColForm) addColForm.reset();
-        if (newColOptionsGroup) newColOptionsGroup.style.display = 'none';
+        if (newColOptionsGroup) newColOptionsGroup.style.display = 'block';
         addColModal.classList.add('active');
       });
     }
@@ -1068,24 +1075,26 @@
       addColForm.addEventListener('submit', (e) => {
         e.preventDefault();
         const label = addColForm.label.value.trim();
-        const key = addColForm.key.value.trim().replace(/\s+/g, '');
-        const type = addColForm.type.value;
+        const type = addColForm.type ? addColForm.type.value : 'select';
         const optionsRaw = addColForm.options ? addColForm.options.value : '';
         const options = optionsRaw ? optionsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
 
-        if (!label || !key) {
-          showToast('項目名とキーを入力してください', 'warning');
+        if (!label) {
+          showToast('項目名を入力してください', 'warning');
           return;
         }
 
+        // 項目キーは自動で作成
+        const autoKey = 'col_' + Date.now().toString(36) + '_' + Math.random().toString(36).substring(2, 6);
+
         try {
           window.DataStore.addColumn({
-            key,
+            key: autoKey,
             label,
             type,
-            options: type === 'select' ? options : undefined,
+            options: options.length > 0 ? options : undefined,
             sortable: true,
-            width: '120px'
+            width: '130px'
           });
           closeModal(addColModal);
           showToast(`新しい管理項目「${label}」を追加しました！`);

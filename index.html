@@ -174,11 +174,11 @@
 
           <select class="filter-select" id="filter-care">
             <option value="all">すべての介護度</option>
-            <option value="1">要介護 1</option>
-            <option value="2">要介護 2</option>
-            <option value="3">要介護 3</option>
-            <option value="4">要介護 4</option>
-            <option value="5">要介護 5</option>
+            <option value="介1">介1</option>
+            <option value="介2">介2</option>
+            <option value="介3">介3</option>
+            <option value="介4">介4</option>
+            <option value="介5">介5</option>
           </select>
 
           <select class="filter-select" id="filter-doctor">
@@ -428,11 +428,14 @@
               <label class="form-label">要介護度</label>
               <select name="careLevel" class="form-input">
                 <option value="">-- 選択 --</option>
-                <option value="1">要介護 1</option>
-                <option value="2">要介護 2</option>
-                <option value="3">要介護 3</option>
-                <option value="4">要介護 4</option>
-                <option value="5">要介護 5</option>
+                <option value="介1">介1</option>
+                <option value="介2">介2</option>
+                <option value="介3">介3</option>
+                <option value="介4">介4</option>
+                <option value="介5">介5</option>
+                <option value="自立">自立</option>
+                <option value="支1">支1</option>
+                <option value="支2">支2</option>
               </select>
             </div>
 
@@ -622,27 +625,23 @@
         <div class="modal-body">
           <div class="form-group" style="margin-bottom: 14px;">
             <label class="form-label">項目名（表示名） *</label>
-            <input type="text" name="label" class="form-input" required placeholder="例: キーパーソン, アレルギー, 担当ケアマネ等">
-          </div>
-
-          <div class="form-group" style="margin-bottom: 14px;">
-            <label class="form-label">項目キー（英数字・内部識別用） *</label>
-            <input type="text" name="key" class="form-input" required placeholder="例: keyPerson, allergy, careManager等">
+            <input type="text" name="label" class="form-input" required placeholder="例: キーパーソン, アレルギー, 担当ケアマネ, 通所利用等">
+            <small style="color: var(--earth-muted); font-size: 11.5px; margin-top: 4px;">※ 内部の項目キーは自動で作成されます</small>
           </div>
 
           <div class="form-group" style="margin-bottom: 14px;">
             <label class="form-label">入力形式</label>
             <select name="type" class="form-input" id="new-col-type">
+              <option value="select" selected>選択肢リスト（ドロップダウン選択・推奨）</option>
               <option value="text">テキスト（自由入力）</option>
-              <option value="select">選択肢リスト（ドロップダウン）</option>
               <option value="number">数値</option>
               <option value="checkbox">チェックボックス（ON/OFF）</option>
             </select>
           </div>
 
-          <div class="form-group" id="new-col-options-group" style="display: none; margin-bottom: 14px;">
-            <label class="form-label">選択肢の候補（カンマ区切り）</label>
-            <input type="text" name="options" class="form-input" placeholder="例: あり, なし, 要確認">
+          <div class="form-group" id="new-col-options-group" style="margin-bottom: 14px;">
+            <label class="form-label">選択肢の初期候補（カンマ区切り、後から変更可能）</label>
+            <input type="text" name="options" class="form-input" placeholder="例: あり, なし, 要相談 （空欄でも後からマスタで追加可能）">
           </div>
         </div>
         <div class="modal-footer">
