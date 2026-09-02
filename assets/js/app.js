@@ -978,7 +978,7 @@
     const careCounts = {};
     careOrder.forEach(c => careCounts[c] = 0);
     residents.forEach(r => {
-      const c = r.careLevel || '自立';
+      const c = String(r.careLevel || '自立');
       if (careCounts[c] !== undefined) {
         careCounts[c]++;
       } else {
