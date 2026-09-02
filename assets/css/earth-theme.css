@@ -434,33 +434,50 @@ body {
 
 .table-responsive {
   width: 100%;
+  max-height: calc(100vh - 220px);
+  min-height: 350px;
+  overflow-y: auto;
   overflow-x: auto;
+  position: relative;
+  scrollbar-width: thin;
+  scrollbar-color: var(--earth-border) transparent;
 }
 
 .data-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0;
   text-align: left;
   font-size: 13.5px;
 }
 
+.data-table thead {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
 .data-table th {
-  background-color: #f8faf9;
-  color: var(--earth-muted);
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background-color: #eef5f0;
+  color: var(--earth-ink);
   font-weight: 800;
   padding: 13px 14px;
-  border-bottom: 2px solid var(--earth-border);
+  border-bottom: 2px solid var(--earth-green-light);
   white-space: nowrap;
-  font-size: 12px;
+  font-size: 12.5px;
   letter-spacing: 0.02em;
   user-select: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .data-table th.sortable {
   cursor: pointer;
 }
 .data-table th.sortable:hover {
-  color: var(--earth-green);
+  color: var(--earth-green-dark);
   background-color: var(--earth-green-light);
 }
 
@@ -468,15 +485,61 @@ body {
   padding: 6px 10px;
   border-bottom: 1px solid rgba(196, 216, 206, 0.5);
   vertical-align: middle;
+  background-color: #ffffff;
 }
 
-.data-table tbody tr:hover {
-  background-color: rgba(226, 240, 223, 0.35);
+.data-table tbody tr:hover td {
+  background-color: rgba(226, 240, 223, 0.45);
 }
 
 .data-table tr.is-empty-room td {
-  background-color: #fafafa;
+  background-color: #fafbfc;
   color: #9e9e9e;
+}
+
+/* 固定列（部屋・名前）の横スクロール固定スタイル */
+.data-table th.sticky-col-room {
+  position: sticky;
+  left: 0;
+  top: 0;
+  z-index: 25;
+  background-color: #e6f0e9;
+  border-right: 1px solid var(--earth-border);
+}
+
+.data-table td.sticky-col-room {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  background-color: #ffffff;
+  border-right: 1px solid var(--earth-border);
+}
+
+.data-table th.sticky-col-name {
+  position: sticky;
+  left: 85px;
+  top: 0;
+  z-index: 25;
+  background-color: #e6f0e9;
+  border-right: 2px solid var(--earth-border);
+}
+
+.data-table td.sticky-col-name {
+  position: sticky;
+  left: 85px;
+  z-index: 10;
+  background-color: #ffffff;
+  border-right: 2px solid var(--earth-border);
+}
+
+.data-table tr:hover td.sticky-col-room,
+.data-table tr:hover td.sticky-col-name {
+  background-color: rgba(226, 240, 223, 0.85);
+}
+
+.data-table tr.is-empty-room td.sticky-col-room,
+.data-table tr.is-empty-room td.sticky-col-name {
+  background-color: #f8faf9;
 }
 
 /* インライン直接編集用コントロール */

@@ -228,9 +228,10 @@
           const removeBtn = !col.fixed 
             ? `<button class="btn-remove-col" onclick="event.stopPropagation(); window.EarthApp.removeColumn('${col.key}', '${col.label}')" title="この項目を削除">×</button>` 
             : '';
+          const stickyClass = col.key === 'room' ? 'sticky-col-room' : (col.key === 'name' ? 'sticky-col-name' : '');
 
           return `
-            <th class="${isSortable ? 'sortable' : ''}" data-col-key="${col.key}" data-sort="${col.key}" draggable="true" style="width: ${col.width || 'auto'}; cursor: move;" title="クリックで並び替え、長押し/ドラッグで列の移動">
+            <th class="${isSortable ? 'sortable' : ''} ${stickyClass}" data-col-key="${col.key}" data-sort="${col.key}" draggable="true" style="width: ${col.width || 'auto'}; cursor: move;" title="クリックで並び替え、長押し/ドラッグで列の移動">
               <div class="col-header-cell">
                 <span class="drag-handle" title="ドラッグして列を移動">⠿</span>
                 <span style="flex:1; margin: 0 4px;">${col.label}${sortIndicator}</span>
@@ -329,7 +330,7 @@
         // 部屋番号
         if (col.key === 'room') {
           return `
-            <td>
+            <td class="sticky-col-room">
               <input type="text" class="cell-input font-num" style="font-weight: 800; width: 65px;" value="${val}"
                 onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="号室">
             </td>
@@ -339,7 +340,7 @@
         // 名前（必ずフルネーム表示）
         if (col.key === 'name') {
           return `
-            <td>
+            <td class="sticky-col-name">
               <input type="text" class="cell-input" style="font-weight: 700; color: ${val ? 'var(--earth-ink)' : '#9ca3af'}; min-width: 120px;" value="${val}"
                 onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="(空室)">
             </td>
