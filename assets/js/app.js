@@ -969,7 +969,7 @@
    */
   function renderAnalyticsView() {
     renderStatistics();
-    const residents = window.DataStore.getResidents().filter(r => !r.isMovedOut && r.name);
+    const residents = window.DataStore.getAllResidents().filter(r => r.name && r.name.trim() !== '');
     const total = residents.length;
     if (total === 0) return;
 
@@ -1047,10 +1047,10 @@
     const dishCounts = {};
 
     residents.forEach(r => {
-      const rice = r.foodRice || '普通';
+      const rice = r.foodMain || '未設定';
       riceCounts[rice] = (riceCounts[rice] || 0) + 1;
 
-      const dish = r.foodDish || '普通';
+      const dish = r.foodSide || '未設定';
       dishCounts[dish] = (dishCounts[dish] || 0) + 1;
     });
 
@@ -1112,7 +1112,7 @@
 
     const copayCounts = { '1割': 0, '2割': 0, '3割': 0, '未設定': 0 };
     residents.forEach(r => {
-      const cp = r.copayRate || '未設定';
+      const cp = r.copay || '未設定';
       if (copayCounts[cp] !== undefined) copayCounts[cp]++;
       else copayCounts['未設定']++;
     });

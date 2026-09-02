@@ -299,6 +299,7 @@ body {
 }
 
 .nav-tab-btn {
+  flex: 0 0 auto;
   background: none;
   border: none;
   padding: 8px 12px;
@@ -315,6 +316,13 @@ body {
   gap: 5px;
   white-space: nowrap;
   line-height: 1;
+}
+
+/* タブ全体が収まらない幅では左端を起点にして、全項目へスクロール可能にする */
+@media (max-width: 1024px) {
+  .nav-tabs-container {
+    justify-content: flex-start;
+  }
 }
 
 .nav-tab-btn:hover {
@@ -1604,7 +1612,7 @@ body {
     justify-content: flex-start;
   }
   .main-content {
-    padding: 16px 12px 40px;
+    padding: 16px 12px 68px;
   }
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
