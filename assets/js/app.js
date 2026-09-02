@@ -1516,8 +1516,11 @@
       btnSyncPull.addEventListener('click', async () => {
         try {
           showToast('クラウドから最新データを取得中...', 'info');
-          const residents = await window.GoogleSheetSync.pullFromSpreadsheet();
-          showToast(`クラウドから ${residents.length} 件の最新データを同期しました！`, 'success');
+          const syncedData = await window.GoogleSheetSync.pullFromSpreadsheet();
+          const residentCount = Array.isArray(syncedData)
+            ? syncedData.length
+            : (syncedData && Array.isArray(syncedData.residents) ? syncedData.residents.length : 0);
+          showToast(`クラウドから ${residentCount} 件の最新データを同期しました！`, 'success');
           renderAll();
         } catch (err) {
           showToast(err.message, 'error');

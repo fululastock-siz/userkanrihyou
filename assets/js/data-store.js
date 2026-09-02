@@ -381,22 +381,80 @@
       return defaultObj;
     }
 
-    saveData() {
-      try {
+    saveData(options = {}) {
+      const source = options.source || 'local';
+      if (!options.preserveTimestamp) {
         this.data.lastUpdated = new Date().toISOString();
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
-        this.notify();
-      } catch (e) {
-        console.error('Failed to save data to localStorage:', e);
       }
+
+      const persist = () => localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
+      try {
+        persist();
+      } catch (e) {
+        // 容量超過時は重い内部バックアップだけを圧縮し、現行データを優先して再保存する
+        if (e && (e.name === 'QuotaExceededError' || e.code === 22)) {
+          this.data.snapshots = Array.isArray(this.data.snapshots) ? this.data.snapshots.slice(0, 5) : [];
+          this.data.residents.forEach(resident => {
+            if (Array.isArray(resident._history)) resident._history = resident._history.slice(0, 3);
+          });
+          try {
+            persist();
+          } catch (retryError) {
+            console.error('Failed to save compacted data to localStorage:', retryError);
+            return false;
+          }
+        } else {
+          console.error('Failed to save data to localStorage:', e);
+          return false;
+        }
+      }
+
+      this.notify({ source, updatedAt: this.data.lastUpdated });
+      return true;
     }
 
     subscribe(fn) {
       this.listeners.push(fn);
     }
 
-    notify() {
-      this.listeners.forEach(fn => fn(this.data));
+    notify(meta = {}) {
+      this.listeners.forEach(fn => fn(this.data, meta));
+    }
+
+    exportCloudState() {
+      return JSON.parse(JSON.stringify({
+        schemaVersion: 2,
+        residents: this.data.residents || [],
+        columns: this.data.columns || DEFAULT_COLUMNS,
+        masters: this.data.masters || DEFAULT_MASTERS,
+        moveOutLogs: this.data.moveOutLogs || [],
+        snapshots: Array.isArray(this.data.snapshots) ? this.data.snapshots.slice(0, 10) : [],
+        lastUpdated: this.data.lastUpdated || new Date().toISOString()
+      }));
+    }
+
+    applyCloudState(cloudState) {
+      if (!cloudState || !Array.isArray(cloudState.residents)) {
+        throw new Error('クラウドデータの形式が不正です');
+      }
+
+      const nextData = {
+        ...this.data,
+        ...cloudState,
+        columns: Array.isArray(cloudState.columns) ? cloudState.columns : (this.data.columns || DEFAULT_COLUMNS),
+        masters: cloudState.masters && typeof cloudState.masters === 'object' ? cloudState.masters : (this.data.masters || DEFAULT_MASTERS),
+        moveOutLogs: Array.isArray(cloudState.moveOutLogs) ? cloudState.moveOutLogs : (this.data.moveOutLogs || []),
+        snapshots: Array.isArray(cloudState.snapshots) ? cloudState.snapshots.slice(0, 10) : (this.data.snapshots || []),
+        residents: cloudState.residents.map(resident => ({
+          ...resident,
+          floorMemo: typeof resident.floorMemo === 'string' ? resident.floorMemo : '',
+          floorEvents: Array.isArray(resident.floorEvents) ? resident.floorEvents : [],
+          purchaseRequest: Boolean(resident.purchaseRequest)
+        }))
+      };
+
+      this.data = nextData;
+      return this.saveData({ source: 'cloud', preserveTimestamp: true });
     }
 
     // --- 項目マスタ管理 ---
@@ -918,9 +976,9 @@
         diffSummary: metadata.summary || null
       };
 
-      // 最大50件まで履歴を保持
+      // ブラウザ容量を圧迫しないよう、直近10件を保持
       this.data.snapshots.unshift(currentSnapshot);
-      if (this.data.snapshots.length > 50) {
+      if (this.data.snapshots.length > 10) {
         this.data.snapshots.pop();
       }
 
@@ -951,7 +1009,7 @@
               source: metadata.fileName || 'Wiseman Import',
               previousState: cleanCurrent
             });
-            if (updatedHist.length > 20) updatedHist.pop();
+            if (updatedHist.length > 5) updatedHist.pop();
 
             this.data.residents[idx] = { ...this.data.residents[idx], ...newRes, _history: updatedHist };
           } else {

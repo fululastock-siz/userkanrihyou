@@ -202,6 +202,12 @@ body {
   border-color: #fecaca;
 }
 
+.badge-sync-pending {
+  background-color: #fff7ed;
+  color: #9a3412;
+  border-color: #fdba74;
+}
+
 /* ヘッダードロップダウンメニュー */
 .dropdown {
   position: relative;

@@ -7,6 +7,7 @@
   'use strict';
 
   const SETTINGS_KEY = 'earth_google_sheet_settings_v2';
+  const PENDING_KEY = 'earth_cloud_sync_pending_v1';
 
   const DEFAULT_SETTINGS = {
     spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/1fjFlkIc29WlkZxYIP3hRNXRMYPW7MQpqcgCH3FjHnkY/edit?usp=sharing',
@@ -24,6 +25,10 @@
       this.periodicSyncTimer = null;
       this.listeners = [];
       this.isInitialPullDone = false;
+      this.isApplyingCloudData = false;
+      this.isDataStoreBound = false;
+      this.pushInFlight = null;
+      this.lastCloudRevision = null;
     }
 
     loadSettings() {
@@ -40,8 +45,47 @@
 
     saveSettings(newSettings) {
       this.settings = { ...this.settings, ...newSettings };
-      localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+      try {
+        localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
+      } catch (e) {
+        console.warn('Failed to save cloud sync settings:', e);
+      }
       this.notifyStatusChange();
+    }
+
+    hasPendingWrite() {
+      try {
+        return Boolean(localStorage.getItem(PENDING_KEY));
+      } catch (e) {
+        return false;
+      }
+    }
+
+    markPendingWrite() {
+      try {
+        localStorage.setItem(PENDING_KEY, JSON.stringify({ pending: true, queuedAt: new Date().toISOString() }));
+      } catch (e) {
+        console.warn('Failed to mark pending cloud write:', e);
+      }
+      this.notifyStatusChange();
+    }
+
+    clearPendingWrite() {
+      try {
+        localStorage.removeItem(PENDING_KEY);
+      } catch (e) {
+        console.warn('Failed to clear pending cloud write:', e);
+      }
+    }
+
+    bindDataStore() {
+      if (this.isDataStoreBound || !window.DataStore) return;
+      this.isDataStoreBound = true;
+      window.DataStore.subscribe((_data, meta = {}) => {
+        if (this.isApplyingCloudData || meta.source === 'cloud') return;
+        this.markPendingWrite();
+        this.triggerAutoPush({ alreadyMarked: true });
+      });
     }
 
     onStatusChange(fn) {
@@ -87,6 +131,16 @@
         };
       }
 
+      if (this.hasPendingWrite()) {
+        return {
+          state: 'pending',
+          label: '🟠 クラウド送信待ち',
+          tooltip: 'ブラウザに一時保存済みです。通信復旧後に自動送信します',
+          class: 'badge-sync-pending',
+          lastSyncTime: this.settings.lastSyncTime
+        };
+      }
+
       return {
         state: 'synced',
         label: '🟢 自動共有中',
@@ -106,17 +160,27 @@
      * 自動同期エンジンの初期化（起動時に自動Pull＆定期ポーリング開始）
      */
     initAutoSync() {
+      this.bindDataStore();
       this.notifyStatusChange();
 
       if (!this.settings.gasWebAppUrl) {
         return;
       }
 
-      // 1. 起動時の自動データ取得（Auto-Pull）
-      this.pullFromSpreadsheet({ silent: true }).then(() => {
+      // 起動時は未送信データを先にクラウドへ退避してから最新データを取得する
+      const startupSync = async () => {
+        if (this.hasPendingWrite()) {
+          await this.pushToSpreadsheet({ silent: true });
+        }
+        if (!this.hasPendingWrite()) {
+          await this.pullFromSpreadsheet({ silent: true, skipPendingCheck: true });
+        }
+      };
+
+      startupSync().then(() => {
         this.isInitialPullDone = true;
-        if (window.EarthApp && typeof window.EarthApp.showToast === 'function') {
-          window.EarthApp.showToast('☁️ クラウドから最新データを自動同期しました', 'success');
+        if (!this.hasPendingWrite() && this.status === 'synced' && window.EarthApp && typeof window.EarthApp.showToast === 'function') {
+          window.EarthApp.showToast('☁️ すべてのデータをクラウド同期しました', 'success');
         }
       }).catch(err => {
         console.warn('Initial pull failed:', err);
@@ -135,8 +199,10 @@
     /**
      * 編集時のデバウンス自動送信トリガー（1.5秒後に自動Push）
      */
-    triggerAutoPush() {
+    triggerAutoPush(options = {}) {
       if (!this.settings.gasWebAppUrl || !this.settings.autoSync) return;
+
+      if (!options.alreadyMarked) this.markPendingWrite();
 
       if (this.autoPushTimer) clearTimeout(this.autoPushTimer);
       this.autoPushTimer = setTimeout(() => {
@@ -161,9 +227,17 @@
       this.notifyStatusChange();
 
       try {
-        const res = await fetch(this.settings.gasWebAppUrl, {
+        // 未送信のローカル編集がある場合は、クラウド取得より先に必ず送信する
+        if (!options.skipPendingCheck && this.hasPendingWrite()) {
+          await this.pushToSpreadsheet({ silent: options.silent });
+          if (this.hasPendingWrite()) return null;
+        }
+
+        const separator = this.settings.gasWebAppUrl.includes('?') ? '&' : '?';
+        const res = await fetch(`${this.settings.gasWebAppUrl}${separator}t=${Date.now()}`, {
           method: 'GET',
-          mode: 'cors'
+          mode: 'cors',
+          cache: 'no-store'
         });
 
         if (!res.ok) {
@@ -171,20 +245,34 @@
         }
 
         const json = await res.json();
-        if (json.status !== 'success' || !Array.isArray(json.residents)) {
+        if (json.status !== 'success') {
           throw new Error(json.message || 'データ形式が不正です');
         }
 
-        if (json.residents.length > 0) {
-          window.DataStore.importFromExcel(json.residents, 'merge');
-          if (window.EarthApp && typeof window.EarthApp.renderAll === 'function') {
-            window.EarthApp.renderAll();
+        this.isApplyingCloudData = true;
+        try {
+          if (json.data && Array.isArray(json.data.residents)) {
+            window.DataStore.applyCloudState(json.data);
+            this.lastCloudRevision = json.revision || null;
+          } else if (Array.isArray(json.residents) && json.residents.length > 0) {
+            // 旧GASとの互換モード。既存の居室メモ等はマージで保持する
+            window.DataStore.importFromExcel(json.residents, 'merge', { fileName: 'Cloud Legacy Sync' });
+            this.markPendingWrite();
           }
+        } finally {
+          this.isApplyingCloudData = false;
+        }
+
+        if (window.EarthApp && typeof window.EarthApp.renderAll === 'function') {
+          window.EarthApp.renderAll();
         }
 
         this.status = 'synced';
         this.saveSettings({ lastSyncTime: new Date().toISOString() });
-        return json.residents;
+        if (json.storageMode === 'legacy' || (!json.data && Array.isArray(json.residents))) {
+          this.triggerAutoPush({ alreadyMarked: true });
+        }
+        return json.data || json.residents;
 
       } catch (err) {
         this.status = 'error';
@@ -205,48 +293,73 @@
         return null;
       }
 
+      if (this.pushInFlight) return this.pushInFlight;
+
       this.status = 'syncing';
       this.notifyStatusChange();
 
-      try {
-        const residents = window.DataStore.getAllResidents();
-        const masters = window.DataStore.getMasters();
-        const columns = window.DataStore.getColumns();
+      this.markPendingWrite();
+      const cloudData = window.DataStore.exportCloudState();
+      const sentUpdatedAt = cloudData.lastUpdated;
+      const payload = {
+        schemaVersion: 2,
+        requestId: `cloud_write_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+        clientUpdatedAt: sentUpdatedAt,
+        data: cloudData,
+        // 旧GASが再デプロイされるまでの互換項目
+        residents: cloudData.residents,
+        masters: cloudData.masters,
+        columns: cloudData.columns,
+        moveOutLogs: cloudData.moveOutLogs,
+        snapshots: cloudData.snapshots,
+        timestamp: sentUpdatedAt
+      };
 
-        const payload = {
-          residents: residents,
-          masters: masters,
-          columns: columns,
-          timestamp: new Date().toISOString()
-        };
+      this.pushInFlight = (async () => {
+        try {
+          const res = await fetch(this.settings.gasWebAppUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'text/plain;charset=utf-8'
+            },
+            body: JSON.stringify(payload)
+          });
 
-        const res = await fetch(this.settings.gasWebAppUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'text/plain;charset=utf-8'
-          },
-          body: JSON.stringify(payload)
-        });
+          if (!res.ok) {
+            throw new Error(`HTTP ${res.status}: 送信に失敗しました`);
+          }
 
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}: 送信に失敗しました`);
+          const json = await res.json();
+          if (json.status !== 'success') {
+            throw new Error(json.message || 'クラウドへの保存に失敗しました');
+          }
+
+          this.lastCloudRevision = json.revision || null;
+          const latestUpdatedAt = window.DataStore.exportCloudState().lastUpdated;
+          if (latestUpdatedAt === sentUpdatedAt) {
+            this.clearPendingWrite();
+          } else {
+            this.markPendingWrite();
+            this.triggerAutoPush({ alreadyMarked: true });
+          }
+
+          this.status = 'synced';
+          this.saveSettings({ lastSyncTime: new Date().toISOString() });
+          return json;
+
+        } catch (err) {
+          // 送信失敗時は未送信フラグを残し、次回起動・定期同期で再送する
+          this.markPendingWrite();
+          this.status = 'error';
+          this.notifyStatusChange(err.message);
+          if (!options.silent) throw err;
+          return null;
+        } finally {
+          this.pushInFlight = null;
         }
+      })();
 
-        const json = await res.json();
-        if (json.status !== 'success') {
-          throw new Error(json.message || 'スプレッドシートへの保存に失敗しました');
-        }
-
-        this.status = 'synced';
-        this.saveSettings({ lastSyncTime: new Date().toISOString() });
-        return json;
-
-      } catch (err) {
-        this.status = 'error';
-        this.notifyStatusChange(err.message);
-        if (!options.silent) throw err;
-        return null;
-      }
+      return this.pushInFlight;
     }
 
     /**
