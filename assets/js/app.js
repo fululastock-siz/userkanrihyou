@@ -390,21 +390,21 @@
           `;
         }
 
-        // 年齢
+        // 年齢（ジャストフィット）
         if (col.key === 'age') {
           return `
-            <td>
-              <input type="number" class="cell-input font-num" value="${val}" style="width: 55px;"
+            <td style="text-align: center; padding: 2px;">
+              <input type="number" class="cell-input font-num" value="${val}" style="width: 100%; text-align: center; font-size: 12px; padding: 2px 0;"
                 onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="-">
             </td>
           `;
         }
 
-        // 生年月日・入居日
+        // 生年月日・入居日（ジャストフィット）
         if (col.key === 'birthday' || col.key === 'entryDate') {
           return `
-            <td>
-              <input type="text" class="cell-input font-num" value="${val}" style="font-size: 12px;"
+            <td style="text-align: center; padding: 2px;">
+              <input type="text" class="cell-input font-num" value="${val}" style="width: 100%; text-align: center; font-size: 11px; padding: 2px 0; font-family: inherit;"
                 onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="-">
             </td>
           `;
