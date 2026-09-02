@@ -2119,26 +2119,22 @@
 
     if (type === 'phone') {
       return [
-        'お世話になっております。株式会社アースの［担当者名］です。',
-        '物品購入のお願いでお電話しました。',
+        'お世話になっております。',
+        '入居施設の［担当者名］です。',
+        `${residentLabel}にお使いいただく物品の購入について、お電話いたしました。`,
         '',
-        `対象は、${target}です。`,
-        `品名は「${values.purchaseItem}」、数量は「${quantity}」です。`,
-        `希望日は「${desiredDate}」です。`,
-        `補足は「${note}」です。`,
+        `お品物は「${values.purchaseItem}」、数量は「${quantity}」です。`,
+        `希望日は「${desiredDate}」、補足は「${note}」です。`,
         '',
-        'こちらの内容で手配可能でしょうか。',
-        '納期と金額をご確認いただけましたら、お願いいたします。'
+        'ご家族様にてご用意いただくことは可能でしょうか。',
+        'ご確認のうえ、ご連絡をお願いいたします。'
       ].join('\n');
     }
 
     return [
-      `件名：物品購入のお願い（${resident.room}号室 ${residentLabel}）`,
-      '',
-      'ご担当者様',
-      '',
-      'お疲れ様です。',
-      '下記物品の購入をお願いいたします。',
+      'お世話になっております。',
+      '入居施設の［担当者名］です。',
+      `${residentLabel}にお使いいただく下記物品につきまして、ご家族様にご購入をお願いしたく、ご連絡いたしました。`,
       '',
       `対象：${target}`,
       `品名：${values.purchaseItem}`,
@@ -2146,7 +2142,7 @@
       `希望日：${desiredDate}`,
       `補足：${note}`,
       '',
-      'お手配の可否と納期をご返信ください。',
+      'お手数をおかけしますが、ご用意いただけるかご返信いただけますと幸いです。',
       'よろしくお願いいたします。'
     ].join('\n');
   }
@@ -2167,7 +2163,7 @@
     }
 
     window.DataStore.updateFloorBoard(residentId, values);
-    elements.purchaseMessageTitle.textContent = type === 'phone' ? '📞 電話用スクリプト' : '✉️ メール文';
+    elements.purchaseMessageTitle.textContent = type === 'phone' ? '📞 ご家族への電話スクリプト' : '✉️ ご家族へのメール文';
     elements.purchaseMessageOutput.value = buildPurchaseMessage(type, resident, values);
     elements.purchaseMessageOutputWrap.hidden = false;
     showToast(type === 'phone' ? '電話用スクリプトを作成しました' : 'メール文を作成しました');

@@ -1477,6 +1477,22 @@ body {
 
 .floor-board-modal-card {
   width: min(760px, 96vw);
+  max-height: calc(100dvh - 24px);
+}
+
+.floor-board-modal-card > form {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.floor-board-modal-card .modal-body {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 .floor-board-resident-label {
