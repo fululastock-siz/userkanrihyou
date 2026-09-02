@@ -102,6 +102,9 @@
         <button class="nav-tab-btn" data-tab="medical" title="訪問医・福祉用具一覧">
           🏥 医療・用具
         </button>
+        <button class="nav-tab-btn" data-tab="stats" title="多角的なデータ分析・統計グラフ">
+          📊 統計分析
+        </button>
         <button class="nav-tab-btn" data-tab="history" title="退去・異動の履歴一覧">
           🕒 異動履歴
         </button>
@@ -114,70 +117,15 @@
     <!-- メインコンテンツ -->
     <main class="main-content">
       
-      <!-- 統計サマリーカード -->
-      <section class="summary-grid">
-        <div class="summary-card">
-          <div class="summary-card-header">
-            <span>現在の入居者数</span>
-            <span class="summary-card-icon">👥</span>
-          </div>
-          <div class="summary-card-value" id="stat-resident-count">--</div>
-          <div class="summary-card-sub">定員 50名</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-card-header">
-            <span>稼働率 (満床率)</span>
-            <span class="summary-card-icon">📊</span>
-          </div>
-          <div class="summary-card-value" id="stat-occupancy-rate">--</div>
-          <div class="summary-card-sub">入居率</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-card-header">
-            <span>平均要介護度</span>
-            <span class="summary-card-icon">🩺</span>
-          </div>
-          <div class="summary-card-value" id="stat-avg-care">--</div>
-          <div class="summary-card-sub">要介護1〜5</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-card-header">
-            <span>平均年齢</span>
-            <span class="summary-card-icon">🎂</span>
-          </div>
-          <div class="summary-card-value" id="stat-avg-age">--</div>
-          <div class="summary-card-sub">最高齢 103歳</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-card-header">
-            <span>とろみ食対象者</span>
-            <span class="summary-card-icon">🍵</span>
-          </div>
-          <div class="summary-card-value" id="stat-thick-count">--</div>
-          <div class="summary-card-sub">誤嚥予防管理</div>
-        </div>
-
-        <div class="summary-card">
-          <div class="summary-card-header">
-            <span>早出し配膳対象</span>
-            <span class="summary-card-icon">⚡</span>
-          </div>
-          <div class="summary-card-value" id="stat-early-count">--</div>
-          <div class="summary-card-sub">優先配膳</div>
-        </div>
-      </section>
-
-      <!-- フィルター・検索ツールバー -->
-      <section class="toolbar-card">
-        <div class="filter-group">
-          <div class="search-input-wrapper">
-            <span class="search-icon">🔍</span>
-            <input type="text" id="search-input" placeholder="部屋番号、氏名、訪問医、用具等で検索...">
-          </div>
+      <!-- タブ1: 全体管理表（トップサマリー撤去で画面最上部から広大に表示） -->
+      <div class="tab-content-pane" id="tab-pane-all">
+        <!-- フィルター・検索ツールバー -->
+        <section class="toolbar-card">
+          <div class="filter-group">
+            <div class="search-input-wrapper">
+              <span class="search-icon">🔍</span>
+              <input type="text" id="search-input" placeholder="部屋番号、氏名、訪問医、用具等で検索...">
+            </div>
 
           <select class="filter-select" id="filter-floor">
             <option value="all">全フロア (2F・3F)</option>
@@ -391,6 +339,121 @@
       <div class="tab-content-pane" id="tab-pane-medical" style="display: none;">
         <div class="doctor-grid" id="doctor-grid">
           <!-- 訪問医別グループ -->
+        </div>
+      </div>
+
+      <!-- タブ: 統計・データ分析（多角的な分析ダッシュボード） -->
+      <div class="tab-content-pane" id="tab-pane-stats" style="display: none;">
+        <!-- 施設基本KPIサマリーカード -->
+        <section class="summary-grid" style="margin-bottom: 20px;">
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <span>現在の入居者数</span>
+              <span class="summary-card-icon">👥</span>
+            </div>
+            <div class="summary-card-value" id="stat-resident-count">--</div>
+            <div class="summary-card-sub">定員 50名</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <span>稼働率 (満床率)</span>
+              <span class="summary-card-icon">📊</span>
+            </div>
+            <div class="summary-card-value" id="stat-occupancy-rate">--</div>
+            <div class="summary-card-sub">入居率</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <span>平均要介護度</span>
+              <span class="summary-card-icon">🩺</span>
+            </div>
+            <div class="summary-card-value" id="stat-avg-care">--</div>
+            <div class="summary-card-sub">要介護1〜5</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <span>平均年齢</span>
+              <span class="summary-card-icon">🎂</span>
+            </div>
+            <div class="summary-card-value" id="stat-avg-age">--</div>
+            <div class="summary-card-sub">最高齢 103歳</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <span>とろみ食対象者</span>
+              <span class="summary-card-icon">🍵</span>
+            </div>
+            <div class="summary-card-value" id="stat-thick-count">--</div>
+            <div class="summary-card-sub">誤嚥予防管理</div>
+          </div>
+
+          <div class="summary-card">
+            <div class="summary-card-header">
+              <span>早出し配膳対象</span>
+              <span class="summary-card-icon">⚡</span>
+            </div>
+            <div class="summary-card-value" id="stat-early-count">--</div>
+            <div class="summary-card-sub">優先配膳</div>
+          </div>
+        </section>
+
+        <!-- 多角的データ分析グリッド -->
+        <div class="analytics-dashboard-grid">
+          <!-- 1. 要介護度別 分布分析 -->
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <div>
+                <h3>🩺 要介護度別 分布分析</h3>
+                <p>自立〜要介護5の人員構成と比率</p>
+              </div>
+            </div>
+            <div class="analytics-card-body" id="analytics-care-level">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+
+          <!-- 2. 訪問医・クリニック別 シェア分析 -->
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <div>
+                <h3>🏥 訪問医（クリニック）別シェア</h3>
+                <p>医療機関ごとの担当入居者数と構成比</p>
+              </div>
+            </div>
+            <div class="analytics-card-body" id="analytics-doctor">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+
+          <!-- 3. 食事形態・ケア区分分析 -->
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <div>
+                <h3>🍚 主食・副食 形態内訳分析</h3>
+                <p>厨房調理・食事ケアの内訳</p>
+              </div>
+            </div>
+            <div class="analytics-card-body" id="analytics-meals">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
+
+          <!-- 4. フロア別比較 & 負担割合分析 -->
+          <div class="analytics-card">
+            <div class="analytics-card-header">
+              <div>
+                <h3>🏢 2F/3Fフロア比較 ＆ 負担割合</h3>
+                <p>階層別入居状況・介護度比較と給付負担割</p>
+              </div>
+            </div>
+            <div class="analytics-card-body" id="analytics-floor-copay">
+              <!-- JSで動的生成 -->
+            </div>
+          </div>
         </div>
       </div>
 
@@ -879,11 +942,11 @@
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_11"></script>
-  <script src="assets/js/excel-importer.js?v=20260902_11"></script>
-  <script src="assets/js/excel-exporter.js?v=20260902_11"></script>
-  <script src="assets/js/google-sheet-sync.js?v=20260902_11"></script>
-  <script src="assets/js/app.js?v=20260902_11"></script>
+  <script src="assets/js/data-store.js?v=20260902_12"></script>
+  <script src="assets/js/excel-importer.js?v=20260902_12"></script>
+  <script src="assets/js/excel-exporter.js?v=20260902_12"></script>
+  <script src="assets/js/google-sheet-sync.js?v=20260902_12"></script>
+  <script src="assets/js/app.js?v=20260902_12"></script>
 
   <script>
     // 印刷日時

@@ -931,6 +931,197 @@
   }
 
   /**
+   * 統計・データ分析ビューの描画（多角的な集計・グラフ分析）
+   */
+  function renderAnalyticsView() {
+    renderStatistics();
+    const residents = window.DataStore.getResidents().filter(r => !r.isMovedOut && r.name);
+    const total = residents.length;
+    if (total === 0) return;
+
+    // 1. 要介護度別分布の集計
+    const careOrder = ['自立', '要支援1', '要支援2', '要介護1', '要介護2', '要介護3', '要介護4', '要介護5'];
+    const careCounts = {};
+    careOrder.forEach(c => careCounts[c] = 0);
+    residents.forEach(r => {
+      const c = r.careLevel || '自立';
+      if (careCounts[c] !== undefined) {
+        careCounts[c]++;
+      } else {
+        const normalized = c.replace('介', '要介護').replace('支', '要支援');
+        if (careCounts[normalized] !== undefined) careCounts[normalized]++;
+        else careCounts[c] = (careCounts[c] || 0) + 1;
+      }
+    });
+
+    const careColors = {
+      '自立': '#0ea5e9',
+      '要支援1': '#10b981',
+      '要支援2': '#14b8a6',
+      '要介護1': '#22c55e',
+      '要介護2': '#84cc16',
+      '要介護3': '#eab308',
+      '要介護4': '#f97316',
+      '要介護5': '#ef4444'
+    };
+
+    const careLevelContainer = document.getElementById('analytics-care-level');
+    if (careLevelContainer) {
+      careLevelContainer.innerHTML = Object.entries(careCounts).map(([label, count]) => {
+        const pct = Math.round((count / total) * 100);
+        const color = careColors[label] || 'var(--earth-green)';
+        return `
+          <div class="analytics-bar-row">
+            <span class="analytics-bar-label">${label}</span>
+            <div class="analytics-bar-track">
+              <div class="analytics-bar-fill" style="width: ${pct}%; background-color: ${color};"></div>
+            </div>
+            <span class="analytics-bar-val">${count}名<small>(${pct}%)</small></span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 2. 訪問医・クリニック別シェア
+    const doctorCounts = {};
+    residents.forEach(r => {
+      const doc = (r.doctor || '未定・その他').trim();
+      doctorCounts[doc] = (doctorCounts[doc] || 0) + 1;
+    });
+    const sortedDoctors = Object.entries(doctorCounts).sort((a, b) => b[1] - a[1]);
+
+    const doctorContainer = document.getElementById('analytics-doctor');
+    if (doctorContainer) {
+      doctorContainer.innerHTML = sortedDoctors.map(([docName, count]) => {
+        const pct = Math.round((count / total) * 100);
+        const isJosai = docName.includes('城西');
+        const color = isJosai ? 'var(--earth-green)' : '#3b82f6';
+        return `
+          <div class="analytics-bar-row">
+            <span class="analytics-bar-label" title="${docName}" style="overflow:hidden; text-overflow:ellipsis;">${docName}</span>
+            <div class="analytics-bar-track">
+              <div class="analytics-bar-fill" style="width: ${pct}%; background-color: ${color};"></div>
+            </div>
+            <span class="analytics-bar-val">${count}名<small>(${pct}%)</small></span>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 3. 食事形態・ケア区分
+    const riceCounts = {};
+    const dishCounts = {};
+
+    residents.forEach(r => {
+      const rice = r.foodRice || '普通';
+      riceCounts[rice] = (riceCounts[rice] || 0) + 1;
+
+      const dish = r.foodDish || '普通';
+      dishCounts[dish] = (dishCounts[dish] || 0) + 1;
+    });
+
+    const mealsContainer = document.getElementById('analytics-meals');
+    if (mealsContainer) {
+      mealsContainer.innerHTML = `
+        <div class="analytics-subgroup">
+          <div class="analytics-subgroup-title">🍚 主食形態の内訳</div>
+          ${Object.entries(riceCounts).map(([label, count]) => {
+            const pct = Math.round((count / total) * 100);
+            return `
+              <div class="analytics-bar-row">
+                <span class="analytics-bar-label">${label}</span>
+                <div class="analytics-bar-track">
+                  <div class="analytics-bar-fill" style="width: ${pct}%; background-color: var(--earth-green);"></div>
+                </div>
+                <span class="analytics-bar-val">${count}名<small>(${pct}%)</small></span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+
+        <div class="analytics-subgroup" style="margin-top: 14px;">
+          <div class="analytics-subgroup-title">🥗 副食形態の内訳</div>
+          ${Object.entries(dishCounts).map(([label, count]) => {
+            const pct = Math.round((count / total) * 100);
+            return `
+              <div class="analytics-bar-row">
+                <span class="analytics-bar-label">${label}</span>
+                <div class="analytics-bar-track">
+                  <div class="analytics-bar-fill" style="width: ${pct}%; background-color: #f59e0b;"></div>
+                </div>
+                <span class="analytics-bar-val">${count}名<small>(${pct}%)</small></span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+
+    // 4. フロア別比較 ＆ 負担割合
+    const f2 = residents.filter(r => String(r.room || '').startsWith('2'));
+    const f3 = residents.filter(r => String(r.room || '').startsWith('3'));
+
+    const calcFloorAvgCare = (list) => {
+      if (list.length === 0) return 0;
+      const valid = list.map(r => {
+        const num = parseInt(String(r.careLevel || '').replace(/[^0-9]/g, ''), 10);
+        return isNaN(num) ? 0 : num;
+      });
+      return (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(2);
+    };
+
+    const calcFloorAvgAge = (list) => {
+      const valid = list.map(r => parseInt(r.age, 10)).filter(a => !isNaN(a));
+      if (valid.length === 0) return 0;
+      return (valid.reduce((a, b) => a + b, 0) / valid.length).toFixed(1);
+    };
+
+    const copayCounts = { '1割': 0, '2割': 0, '3割': 0, '未設定': 0 };
+    residents.forEach(r => {
+      const cp = r.copayRate || '未設定';
+      if (copayCounts[cp] !== undefined) copayCounts[cp]++;
+      else copayCounts['未設定']++;
+    });
+
+    const floorCopayContainer = document.getElementById('analytics-floor-copay');
+    if (floorCopayContainer) {
+      floorCopayContainer.innerHTML = `
+        <div class="floor-compare-grid">
+          <div class="floor-stat-box">
+            <h4>🏢 2F フロア</h4>
+            <div class="floor-stat-num">${f2.length} <small style="font-size:12px; color:var(--earth-muted);">/ 25室</small></div>
+            <div class="floor-stat-desc">平均介護度: <strong>${calcFloorAvgCare(f2)}</strong></div>
+            <div class="floor-stat-desc">平均年齢: <strong>${calcFloorAvgAge(f2)}歳</strong></div>
+          </div>
+          <div class="floor-stat-box">
+            <h4>🏢 3F フロア</h4>
+            <div class="floor-stat-num">${f3.length} <small style="font-size:12px; color:var(--earth-muted);">/ 25室</small></div>
+            <div class="floor-stat-desc">平均介護度: <strong>${calcFloorAvgCare(f3)}</strong></div>
+            <div class="floor-stat-desc">平均年齢: <strong>${calcFloorAvgAge(f3)}歳</strong></div>
+          </div>
+        </div>
+
+        <div class="analytics-subgroup" style="margin-top: 14px;">
+          <div class="analytics-subgroup-title">💳 介護保険 負担割合の構成</div>
+          ${Object.entries(copayCounts).filter(([_, count]) => count > 0).map(([label, count]) => {
+            const pct = Math.round((count / total) * 100);
+            const color = label === '1割' ? '#10b981' : (label === '2割' ? '#f59e0b' : '#ef4444');
+            return `
+              <div class="analytics-bar-row">
+                <span class="analytics-bar-label">${label}負担</span>
+                <div class="analytics-bar-track">
+                  <div class="analytics-bar-fill" style="width: ${pct}%; background-color: ${color};"></div>
+                </div>
+                <span class="analytics-bar-val">${count}名<small>(${pct}%)</small></span>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      `;
+    }
+  }
+
+  /**
    * 全ビューの一括再描画
    */
   function renderAll() {
@@ -940,6 +1131,7 @@
     else if (state.activeTab === 'floor') renderFloorMap();
     else if (state.activeTab === 'meal') renderMealView();
     else if (state.activeTab === 'medical') renderMedicalView();
+    else if (state.activeTab === 'stats') renderAnalyticsView();
     else if (state.activeTab === 'history') renderHistoryView();
   }
 

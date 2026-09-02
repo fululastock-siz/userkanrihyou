@@ -1730,5 +1730,158 @@ body {
 }
 .data-table tr.row-cert-urgent td.sticky-col-room,
 .data-table tr.row-cert-urgent td.sticky-col-name {
-  background-color: #fff3e0 !important;
+  background-color: #fef3c7 !important;
+}
+
+/* ==========================================================================
+   統計・データ分析ダッシュボード用スタイル
+   ========================================================================== */
+.analytics-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+  gap: 20px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 992px) {
+  .analytics-dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.analytics-card {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid var(--earth-border);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.analytics-card-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--earth-border);
+  background: #f8faf9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.analytics-card-header h3 {
+  font-size: 14.5px;
+  font-weight: 800;
+  color: var(--earth-ink);
+  margin: 0;
+}
+
+.analytics-card-header p {
+  font-size: 11.5px;
+  color: var(--earth-muted);
+  margin: 2px 0 0 0;
+}
+
+.analytics-card-body {
+  padding: 18px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* 水平プログレスバー / チャート行 */
+.analytics-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+
+.analytics-bar-label {
+  width: 90px;
+  font-weight: 700;
+  color: var(--earth-ink);
+  white-space: nowrap;
+  text-align: left;
+}
+
+.analytics-bar-track {
+  flex: 1;
+  height: 10px;
+  background-color: #f1f5f9;
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+}
+
+.analytics-bar-fill {
+  height: 100%;
+  border-radius: 6px;
+  transition: width 0.4s ease-out;
+}
+
+.analytics-bar-val {
+  width: 75px;
+  text-align: right;
+  font-weight: 800;
+  color: var(--earth-ink);
+  font-family: 'Manrope', sans-serif;
+  white-space: nowrap;
+  font-size: 12.5px;
+}
+
+.analytics-bar-val small {
+  color: var(--earth-muted);
+  font-weight: 600;
+  margin-left: 3px;
+  font-size: 11px;
+}
+
+/* 食事・ケアミニバッジグループ */
+.analytics-subgroup {
+  margin-bottom: 10px;
+}
+.analytics-subgroup-title {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--earth-green-dark);
+  margin-bottom: 6px;
+  border-left: 3px solid var(--earth-green);
+  padding-left: 6px;
+}
+
+/* フロア比較用2カラムカード */
+.floor-compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.floor-stat-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+}
+
+.floor-stat-box h4 {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--earth-ink);
+  margin-bottom: 6px;
+}
+
+.floor-stat-box .floor-stat-num {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--earth-green-dark);
+  font-family: 'Manrope', sans-serif;
+}
+
+.floor-stat-box .floor-stat-desc {
+  font-size: 11px;
+  color: var(--earth-muted);
+  margin-top: 4px;
 }
