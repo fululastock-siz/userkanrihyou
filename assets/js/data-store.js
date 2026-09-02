@@ -544,6 +544,7 @@
       this.data.masters[key] = this.data.masters[key].filter(i => i !== item);
       if (this.data.doctorColors) {
         delete this.data.doctorColors[this.getMasterColorStorageKey(key, item)];
+        delete this.data.doctorColors[this.getMasterTextColorStorageKey(key, item)];
       }
       this.saveData();
     }
@@ -559,9 +560,26 @@
       return key === 'doctor' ? value : `${key}::${value}`;
     }
 
+    getMasterTextColorStorageKey(masterKey, item) {
+      const key = String(masterKey || '').trim();
+      const value = String(item || '').trim();
+      return `textColor::${key}::${value}`;
+    }
+
     hasMasterItemColor(masterKey, item) {
       const storageKey = this.getMasterColorStorageKey(masterKey, item);
       return Object.prototype.hasOwnProperty.call(this.getMasterItemColors(), storageKey);
+    }
+
+    hasMasterItemTextColor(masterKey, item) {
+      const storageKey = this.getMasterTextColorStorageKey(masterKey, item);
+      return Object.prototype.hasOwnProperty.call(this.getMasterItemColors(), storageKey);
+    }
+
+    getMasterItemTextColor(masterKey, item) {
+      const storageKey = this.getMasterTextColorStorageKey(masterKey, item);
+      const customColor = this.getMasterItemColors()[storageKey];
+      return /^#[0-9A-F]{6}$/i.test(customColor || '') ? customColor.toUpperCase() : '';
     }
 
     getMasterItemColor(masterKey, item) {
@@ -601,6 +619,27 @@
         return false;
       }
       this.saveData({ renderHint: { type: 'master-color', masterKey: key, item: name } });
+      return true;
+    }
+
+    setMasterItemTextColor(masterKey, item, color) {
+      const key = String(masterKey || '').trim();
+      const name = String(item || '').trim();
+      const normalizedColor = String(color || '').trim().toUpperCase();
+      if (!key || !name) return false;
+      if (!this.data.doctorColors || typeof this.data.doctorColors !== 'object') {
+        this.data.doctorColors = {};
+      }
+      const storageKey = this.getMasterTextColorStorageKey(key, name);
+
+      if (!normalizedColor) {
+        delete this.data.doctorColors[storageKey];
+      } else if (/^#[0-9A-F]{6}$/.test(normalizedColor)) {
+        this.data.doctorColors[storageKey] = normalizedColor;
+      } else {
+        return false;
+      }
+      this.saveData({ renderHint: { type: 'master-text-color', masterKey: key, item: name } });
       return true;
     }
 

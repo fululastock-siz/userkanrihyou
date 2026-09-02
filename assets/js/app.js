@@ -126,13 +126,18 @@
     })[char]);
   }
 
-  function masterColorStyle(masterKey, item) {
-    const background = window.DataStore.getMasterItemColor(masterKey, item);
+  function readableTextColor(background) {
     const hex = background.replace('#', '');
     const red = parseInt(hex.slice(0, 2), 16);
     const green = parseInt(hex.slice(2, 4), 16);
     const blue = parseInt(hex.slice(4, 6), 16);
-    const text = ((red * 299 + green * 587 + blue * 114) / 1000) >= 150 ? '#172033' : '#FFFFFF';
+    return ((red * 299 + green * 587 + blue * 114) / 1000) >= 150 ? '#172033' : '#FFFFFF';
+  }
+
+  function masterColorStyle(masterKey, item) {
+    const background = window.DataStore.getMasterItemColor(masterKey, item);
+    const customText = window.DataStore.getMasterItemTextColor(masterKey, item);
+    const text = customText || readableTextColor(background);
     return `background-color:${background};color:${text};border-color:${text === '#FFFFFF' ? 'rgba(255,255,255,.6)' : 'rgba(23,32,51,.2)'};`;
   }
 
@@ -1417,6 +1422,10 @@
               const isColorEnabled = COLOR_ENABLED_MASTER_KEYS.has(key);
               const currentColor = isColorEnabled ? window.DataStore.getMasterItemColor(key, item) : '';
               const isCustomColor = isColorEnabled && window.DataStore.hasMasterItemColor(key, item);
+              const hasTextColor = key === 'foodMain' && window.DataStore.hasMasterItemTextColor(key, item);
+              const currentTextColor = key === 'foodMain'
+                ? (window.DataStore.getMasterItemTextColor(key, item) || readableTextColor(currentColor))
+                : '';
               return `
                 <span class="master-tag ${isColorEnabled ? 'colored-master-tag' : ''}" style="${isColorEnabled ? masterColorStyle(key, item) : ''}">
                   ${escapeHtml(item)}
@@ -1426,6 +1435,13 @@
                       <input type="color" value="${currentColor}" data-master-key="${escapeHtml(key)}" data-master-item="${encodedItem}" onchange="window.EarthApp.setMasterColor(this.dataset.masterKey, decodeURIComponent(this.dataset.masterItem), this.value)">
                     </label>
                     <button type="button" class="master-color-reset" data-master-key="${escapeHtml(key)}" data-master-item="${encodedItem}" onclick="window.EarthApp.resetMasterColor(this.dataset.masterKey, decodeURIComponent(this.dataset.masterItem))" ${isCustomColor ? '' : 'disabled'} title="自動色に戻す">↺</button>
+                    ${key === 'foodMain' ? `
+                      <label class="master-color-control" title="${escapeHtml(item)}の文字色を選ぶ">
+                        <span>文字</span>
+                        <input type="color" value="${currentTextColor}" data-text-master-key="${escapeHtml(key)}" data-master-item="${encodedItem}" onchange="window.EarthApp.setMasterTextColor(this.dataset.textMasterKey, decodeURIComponent(this.dataset.masterItem), this.value)">
+                      </label>
+                      <button type="button" class="master-color-reset" data-text-master-key="${escapeHtml(key)}" data-master-item="${encodedItem}" onclick="window.EarthApp.resetMasterTextColor(this.dataset.textMasterKey, decodeURIComponent(this.dataset.masterItem))" ${hasTextColor ? '' : 'disabled'} title="文字色を自動に戻す">↺</button>
+                    ` : ''}
                   ` : ''}
                   <button type="button" class="master-tag-remove" data-master-key="${escapeHtml(key)}" data-master-item="${encodedItem}" onclick="window.EarthApp.removeMaster(this.dataset.masterKey, decodeURIComponent(this.dataset.masterItem))" title="削除">×</button>
                 </span>
@@ -1951,6 +1967,21 @@
     renderMasterManager();
   }
 
+  function setMasterTextColor(masterKey, item, color) {
+    if (!window.DataStore.setMasterItemTextColor(masterKey, item, color)) {
+      showToast('文字色を設定できませんでした', 'error');
+      return;
+    }
+    showToast(`「${item}」の文字色を更新しました`);
+    renderMasterManager();
+  }
+
+  function resetMasterTextColor(masterKey, item) {
+    window.DataStore.setMasterItemTextColor(masterKey, item, '');
+    showToast(`「${item}」の文字色を自動に戻しました`);
+    renderMasterManager();
+  }
+
   function openFloorBoardModal(residentId) {
     const resident = window.DataStore.getResidentById(residentId);
     if (!resident || !elements.floorBoardModal || !elements.floorBoardForm) return;
@@ -2195,6 +2226,8 @@
     removeMaster,
     setMasterColor,
     resetMasterColor,
+    setMasterTextColor,
+    resetMasterTextColor,
     restoreSnapshot,
     openEditModal,
     openFloorBoardModal,
