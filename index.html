@@ -84,32 +84,32 @@
       </div>
     </div>
 
-    <!-- ナビゲーションタブ -->
-    <div class="nav-tabs-wrapper">
+    <!-- 画面下部固定ナビゲーションタブバー（見切れ防止・コンパクト化） -->
+    <nav class="nav-tabs-wrapper">
       <div class="nav-tabs-container">
-        <button class="nav-tab-btn active" data-tab="all">
-          📋 全体管理表
+        <button class="nav-tab-btn active" data-tab="all" title="全入居者の一覧管理表">
+          📋 全体管理
         </button>
-        <button class="nav-tab-btn" data-tab="caremanager" style="font-weight: 700; color: #1e40af; background: #eff6ff; border-color: #bfdbfe;">
+        <button class="nav-tab-btn" data-tab="caremanager" style="font-weight: 700; color: #1e40af;" title="介護保険・認定期限アラート">
           👔 ケアマネ・相談員
         </button>
-        <button class="nav-tab-btn" data-tab="floor">
-          🏢 居室フロアマップ (2F/3F)
+        <button class="nav-tab-btn" data-tab="floor" title="フロア別居室配置図">
+          🏢 フロアマップ
         </button>
-        <button class="nav-tab-btn" data-tab="meal">
-          🍚 食事・厨房指示一覧
+        <button class="nav-tab-btn" data-tab="meal" title="食事・とろみ・配膳指示">
+          🍚 食事・厨房
         </button>
-        <button class="nav-tab-btn" data-tab="medical">
-          🏥 訪問医・福祉用具
+        <button class="nav-tab-btn" data-tab="medical" title="訪問医・福祉用具一覧">
+          🏥 医療・用具
         </button>
-        <button class="nav-tab-btn" data-tab="history">
-          🕒 異動・退去履歴
+        <button class="nav-tab-btn" data-tab="history" title="退去・異動の履歴一覧">
+          🕒 異動履歴
         </button>
-        <button class="nav-tab-btn" data-tab="import" style="color: var(--earth-green-dark); background-color: rgba(36, 125, 27, 0.08);">
-          📥 .xlsファイル読込・更新
+        <button class="nav-tab-btn" data-tab="import" style="color: var(--earth-green-dark);" title="ワイズマン等のExcel/.xlsファイル取込">
+          📥 データ取込
         </button>
       </div>
-    </div>
+    </nav>
 
     <!-- メインコンテンツ -->
     <main class="main-content">
@@ -879,11 +879,11 @@
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_10"></script>
-  <script src="assets/js/excel-importer.js?v=20260902_10"></script>
-  <script src="assets/js/excel-exporter.js?v=20260902_10"></script>
-  <script src="assets/js/google-sheet-sync.js?v=20260902_10"></script>
-  <script src="assets/js/app.js?v=20260902_10"></script>
+  <script src="assets/js/data-store.js?v=20260902_11"></script>
+  <script src="assets/js/excel-importer.js?v=20260902_11"></script>
+  <script src="assets/js/excel-exporter.js?v=20260902_11"></script>
+  <script src="assets/js/google-sheet-sync.js?v=20260902_11"></script>
+  <script src="assets/js/app.js?v=20260902_11"></script>
 
   <script>
     // 印刷日時

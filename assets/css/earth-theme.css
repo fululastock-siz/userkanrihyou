@@ -208,18 +208,31 @@ body {
   margin: 5px 0;
 }
 
-/* ナビゲーションタブ */
+/* ナビゲーションタブ（画面下部固定・ボトムバー） */
 .nav-tabs-wrapper {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 950;
   background: #ffffff;
-  border-bottom: 1px solid var(--earth-border);
-  padding: 0 24px;
+  border-top: 1px solid var(--earth-border);
+  border-bottom: none;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.06);
+  padding: 0 12px;
+  height: 48px;
+  display: flex;
+  align-items: center;
 }
 
 .nav-tabs-container {
-  max-width: 1600px;
+  max-width: 1400px;
+  width: 100%;
   margin: 0 auto;
   display: flex;
-  gap: 8px;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
   overflow-x: auto;
   scrollbar-width: none;
 }
@@ -230,28 +243,31 @@ body {
 .nav-tab-btn {
   background: none;
   border: none;
-  padding: 14px 18px;
-  font-size: 14px;
+  padding: 8px 12px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--earth-muted);
   cursor: pointer;
-  border-bottom: 3px solid transparent;
+  border-top: 3px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
   white-space: nowrap;
+  line-height: 1;
 }
 
 .nav-tab-btn:hover {
-  color: var(--earth-green);
-  background-color: rgba(36, 125, 27, 0.04);
+  color: var(--earth-green-dark);
+  background-color: var(--earth-green-light);
 }
 
 .nav-tab-btn.active {
-  color: var(--earth-green);
-  border-bottom-color: var(--earth-green);
-  background-color: rgba(36, 125, 27, 0.06);
+  color: var(--earth-green-dark);
+  border-top-color: var(--earth-green);
+  background-color: var(--earth-green-light);
 }
 
 .tab-badge {
@@ -264,13 +280,13 @@ body {
   font-weight: 800;
 }
 
-/* メインコンテンツ */
+/* メインコンテンツ（下部固定バーのスペース確保） */
 .main-content {
   flex: 1;
   max-width: 1600px;
   width: 100%;
   margin: 0 auto;
-  padding: 24px 20px 60px;
+  padding: 16px 20px 68px; /* 下部ナビバー分の余白 */
 }
 
 /* 統計サマリーカード */
