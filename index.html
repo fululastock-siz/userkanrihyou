@@ -700,17 +700,27 @@
   <!-- トースト通知コンテナ -->
   <div class="toast-container" id="toast-container"></div>
 
-  <!-- JavaScriptモジュール読み込み -->
-  <script src="assets/js/xlsx.full.min.js"></script>
-  <script src="assets/js/data-store.js"></script>
-  <script src="assets/js/excel-importer.js"></script>
-  <script src="assets/js/excel-exporter.js"></script>
-  <script src="assets/js/google-sheet-sync.js"></script>
-  <script src="assets/js/app.js"></script>
+  <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
+  <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
+  <script src="assets/js/data-store.js?v=20260902_2"></script>
+  <script src="assets/js/excel-importer.js?v=20260902_2"></script>
+  <script src="assets/js/excel-exporter.js?v=20260902_2"></script>
+  <script src="assets/js/google-sheet-sync.js?v=20260902_2"></script>
+  <script src="assets/js/app.js?v=20260902_2"></script>
 
   <script>
     // 印刷日時
-    document.getElementById('print-date').textContent = new Date().toLocaleString('ja-JP');
+    const pDate = document.getElementById('print-date');
+    if (pDate) pDate.textContent = new Date().toLocaleString('ja-JP');
+
+    // スプラッシュ画面のフェイルセーフ（万が一の遅延時も1.5秒で自動消去）
+    setTimeout(() => {
+      const splash = document.getElementById('earth-splash-screen');
+      if (splash) {
+        splash.classList.add('fade-out');
+        setTimeout(() => splash.remove(), 500);
+      }
+    }, 1500);
   </script>
 </body>
 </html>
