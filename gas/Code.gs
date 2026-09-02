@@ -13,6 +13,17 @@ var CHUNK_SIZE = 40000;
 function doGet(e) {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var cloudSheet = ss.getSheetByName(CLOUD_SHEET_NAME);
+    var currentRevision = cloudSheet ? String(cloudSheet.getRange('B1').getValue() || '') : '';
+    var requestedRevision = e && e.parameter ? String(e.parameter.since || '') : '';
+    if (currentRevision && requestedRevision === currentRevision) {
+      return jsonOutput_({
+        status: 'success',
+        storageMode: 'canonical',
+        unchanged: true,
+        revision: currentRevision
+      });
+    }
     var canonical = readCanonicalState_(ss);
     if (canonical) {
       return jsonOutput_({

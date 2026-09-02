@@ -234,7 +234,9 @@
         }
 
         const separator = this.settings.gasWebAppUrl.includes('?') ? '&' : '?';
-        const res = await fetch(`${this.settings.gasWebAppUrl}${separator}t=${Date.now()}`, {
+        const params = new URLSearchParams({ t: String(Date.now()) });
+        if (this.lastCloudRevision) params.set('since', this.lastCloudRevision);
+        const res = await fetch(`${this.settings.gasWebAppUrl}${separator}${params.toString()}`, {
           method: 'GET',
           mode: 'cors',
           cache: 'no-store'
@@ -249,6 +251,13 @@
           throw new Error(json.message || 'データ形式が不正です');
         }
 
+        // 変更がなければデータの置換・全画面再描画を行わない
+        if (json.unchanged) {
+          this.status = 'synced';
+          this.saveSettings({ lastSyncTime: new Date().toISOString() });
+          return { unchanged: true, residents: window.DataStore.getAllResidents() };
+        }
+
         this.isApplyingCloudData = true;
         try {
           if (json.data && Array.isArray(json.data.residents)) {
@@ -261,10 +270,6 @@
           }
         } finally {
           this.isApplyingCloudData = false;
-        }
-
-        if (window.EarthApp && typeof window.EarthApp.renderAll === 'function') {
-          window.EarthApp.renderAll();
         }
 
         this.status = 'synced';

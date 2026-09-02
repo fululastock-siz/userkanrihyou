@@ -409,7 +409,11 @@
         }
       }
 
-      this.notify({ source, updatedAt: this.data.lastUpdated });
+      this.notify({
+        source,
+        updatedAt: this.data.lastUpdated,
+        renderHint: options.renderHint || null
+      });
       return true;
     }
 
@@ -472,13 +476,13 @@
       this.saveData();
     }
 
-    addMasterItem(key, item) {
+    addMasterItem(key, item, options = {}) {
       if (!this.data.masters) this.data.masters = JSON.parse(JSON.stringify(DEFAULT_MASTERS));
       if (!this.data.masters[key]) this.data.masters[key] = [];
       const trimmed = String(item).trim();
       if (trimmed && !this.data.masters[key].includes(trimmed)) {
         this.data.masters[key].push(trimmed);
-        this.saveData();
+        if (!options.deferSave) this.saveData();
       }
     }
 
@@ -661,7 +665,7 @@
     }
 
     // 居室情報のセル直接更新
-    updateResidentField(residentId, fieldKey, value) {
+    updateResidentField(residentId, fieldKey, value, options = {}) {
       const res = this.getResidentById(residentId);
       if (res) {
         if (fieldKey === 'age') {
@@ -700,10 +704,14 @@
 
         // 新しい値が入力された場合、マスタにも自動で候補登録（リスト選択を便利にする）
         if (value && typeof value === 'string' && value.trim() !== '' && fieldKey !== 'name' && fieldKey !== 'room' && fieldKey !== 'birthday' && fieldKey !== 'entryDate') {
-          this.addMasterItem(fieldKey, value.trim());
+          this.addMasterItem(fieldKey, value.trim(), { deferSave: true });
         }
 
-        this.saveData();
+        if (!options.deferSave) {
+          this.saveData({
+            renderHint: { type: 'resident-field', residentId, fieldKey }
+          });
+        }
       }
     }
 
@@ -1020,11 +1028,11 @@
 
       // 3. マスタの自動補完（新しく取り込まれた訪問医や用具をマスタに追加）
       parsedResidents.forEach(r => {
-        if (r.doctor) this.addMasterItem('doctor', r.doctor);
-        if (r.dental) this.addMasterItem('dental', r.dental);
-        if (r.equipment) this.addMasterItem('equipment', r.equipment);
-        if (r.foodMain) this.addMasterItem('foodMain', r.foodMain);
-        if (r.foodSide) this.addMasterItem('foodSide', r.foodSide);
+        if (r.doctor) this.addMasterItem('doctor', r.doctor, { deferSave: true });
+        if (r.dental) this.addMasterItem('dental', r.dental, { deferSave: true });
+        if (r.equipment) this.addMasterItem('equipment', r.equipment, { deferSave: true });
+        if (r.foodMain) this.addMasterItem('foodMain', r.foodMain, { deferSave: true });
+        if (r.foodSide) this.addMasterItem('foodSide', r.foodSide, { deferSave: true });
       });
 
       this.data.residents.sort((a, b) => parseInt(a.room, 10) - parseInt(b.room, 10));

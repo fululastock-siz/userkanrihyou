@@ -100,6 +100,17 @@
     toastContainer: document.getElementById('toast-container')
   };
 
+  let renderFramePending = false;
+  function scheduleRenderAll() {
+    if (renderFramePending) return;
+    renderFramePending = true;
+    const schedule = window.requestAnimationFrame || (callback => setTimeout(callback, 0));
+    schedule(() => {
+      renderFramePending = false;
+      renderAll();
+    });
+  }
+
   function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>'"]/g, char => ({
       '&': '&amp;',
@@ -1432,7 +1443,7 @@
     // 検索・フィルター
     elements.searchInput.addEventListener('input', (e) => {
       state.searchQuery = e.target.value;
-      renderAll();
+      scheduleRenderAll();
     });
 
     elements.filterFloorSelect.addEventListener('change', (e) => {
@@ -1521,7 +1532,6 @@
             ? syncedData.length
             : (syncedData && Array.isArray(syncedData.residents) ? syncedData.residents.length : 0);
           showToast(`クラウドから ${residentCount} 件の最新データを同期しました！`, 'success');
-          renderAll();
         } catch (err) {
           showToast(err.message, 'error');
         }
@@ -1756,14 +1766,18 @@
       });
     });
 
-    // データストア購読
-    window.DataStore.subscribe(() => {
-      renderStatistics();
-      renderAllResidentsTable();
-      if (state.activeTab === 'floor') renderFloorMap();
-      else if (state.activeTab === 'meal') renderMealView();
-      else if (state.activeTab === 'medical') renderMedicalView();
-      else if (state.activeTab === 'history') renderHistoryView();
+    // 連続更新は次の描画タイミングで1回にまとめ、同じ画面の二重描画を防ぐ
+    window.DataStore.subscribe((_data, meta = {}) => {
+      const hint = meta.renderHint;
+      const hasActiveFilter = state.searchQuery || state.filterFloor !== 'all' ||
+        state.filterCareLevel !== 'all' || state.filterDoctor !== 'all' || state.filterFood !== 'all';
+      const canKeepCurrentTable = state.activeTab === 'all' && hint && hint.type === 'resident-field' &&
+        !hasActiveFilter && state.sortField !== hint.fieldKey && !['room', 'name', 'birthday'].includes(hint.fieldKey);
+      if (canKeepCurrentTable) {
+        renderStatistics();
+        return;
+      }
+      scheduleRenderAll();
     });
   }
 
@@ -1784,7 +1798,7 @@
           age--;
         }
         if (age >= 0 && age <= 130) {
-          window.DataStore.updateResidentField(residentId, 'age', age);
+          window.DataStore.updateResidentField(residentId, 'age', age, { deferSave: true });
         }
       }
     }
@@ -1895,7 +1909,6 @@
       floorMemo: elements.floorRoomMemo.value.trim()
     });
     window.GoogleSheetSync.triggerAutoPush();
-    renderFloorMap();
     showToast('居室メモを保存しました');
   }
 
@@ -1922,7 +1935,6 @@
     window.GoogleSheetSync.triggerAutoPush();
     elements.floorEventTitle.value = '';
     renderFloorEventList(residentId);
-    renderFloorMap();
     showToast('カレンダー予定を追加しました');
   }
 
@@ -1935,7 +1947,6 @@
     window.DataStore.updateFloorBoard(residentId, { floorEvents: events });
     window.GoogleSheetSync.triggerAutoPush();
     renderFloorEventList(residentId);
-    renderFloorMap();
     showToast('予定を削除しました');
   }
 
@@ -1945,7 +1956,6 @@
     const nextValue = !resident.purchaseRequest;
     window.DataStore.updateFloorBoard(residentId, { purchaseRequest: nextValue });
     window.GoogleSheetSync.triggerAutoPush();
-    renderFloorMap();
     showToast(nextValue ? `${resident.room}号室を物品購入依頼ありにしました` : `${resident.room}号室の物品購入依頼を解除しました`, nextValue ? 'warning' : 'success');
   }
 
