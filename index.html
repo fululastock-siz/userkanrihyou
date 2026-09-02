@@ -200,29 +200,28 @@
             <option value="thick">とろみあり</option>
             <option value="early">早出し対象</option>
           </select>
+
+          <button class="btn btn-outline" id="btn-open-add-col-modal" style="margin-left: auto; font-size: 13px;" title="管理項目（列）を新しく追加">
+            ➕ 管理項目を追加
+          </button>
         </div>
       </section>
 
       <!-- タブ1: 全体管理表 -->
       <div class="tab-content-pane" id="tab-pane-all">
         <div class="table-card">
+          <div style="padding: 12px 20px; background: #f8faf9; border-bottom: 1px solid var(--earth-border); display: flex; justify-content: space-between; align-items: center;">
+            <div style="font-size: 13px; font-weight: 700; color: var(--earth-green-dark);">
+              💡 表内のセル（名前、訪問医、食事、用具等）を直接クリックしてそのまま編集・保存できます。
+            </div>
+            <div style="font-size: 12px; color: var(--earth-muted);">
+              編集内容は即座に自動保存されます
+            </div>
+          </div>
           <div class="table-responsive">
             <table class="data-table">
-              <thead>
-                <tr>
-                  <th class="sortable" data-sort="room">部屋 ↕</th>
-                  <th class="sortable" data-sort="name">名前 ↕</th>
-                  <th class="sortable" data-sort="careLevel">介護度 ↕</th>
-                  <th class="sortable" data-sort="age">年齢 ↕</th>
-                  <th>生年月日</th>
-                  <th class="sortable" data-sort="entryDate">入居日 ↕</th>
-                  <th>訪問医</th>
-                  <th>口腔衛生</th>
-                  <th>福祉用具</th>
-                  <th>食事形態</th>
-                  <th style="text-align: center;">エアコン</th>
-                  <th class="action-col" style="text-align: right;">操作</th>
-                </tr>
+              <thead id="resident-table-head">
+                <!-- JavaScriptで動的生成 -->
               </thead>
               <tbody id="resident-table-body">
                 <!-- JavaScriptで動的生成 -->
@@ -601,6 +600,48 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('sheet-sync-modal'))">閉じる</button>
       </div>
+    </div>
+  </div>
+
+  <!-- 管理項目（列）追加モーダル -->
+  <div class="modal-overlay" id="add-column-modal">
+    <div class="modal-card" style="width: min(500px, 96vw);">
+      <div class="modal-header">
+        <h2>➕ 新しい管理項目（列）の追加</h2>
+        <button class="modal-close" onclick="window.EarthApp.closeModal(document.getElementById('add-column-modal'))">&times;</button>
+      </div>
+      <form id="add-column-form">
+        <div class="modal-body">
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label">項目名（表示名） *</label>
+            <input type="text" name="label" class="form-input" required placeholder="例: キーパーソン, アレルギー, 担当ケアマネ等">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label">項目キー（英数字・内部識別用） *</label>
+            <input type="text" name="key" class="form-input" required placeholder="例: keyPerson, allergy, careManager等">
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label">入力形式</label>
+            <select name="type" class="form-input" id="new-col-type">
+              <option value="text">テキスト（自由入力）</option>
+              <option value="select">選択肢リスト（ドロップダウン）</option>
+              <option value="number">数値</option>
+              <option value="checkbox">チェックボックス（ON/OFF）</option>
+            </select>
+          </div>
+
+          <div class="form-group" id="new-col-options-group" style="display: none; margin-bottom: 14px;">
+            <label class="form-label">選択肢の候補（カンマ区切り）</label>
+            <input type="text" name="options" class="form-input" placeholder="例: あり, なし, 要確認">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('add-column-modal'))">キャンセル</button>
+          <button type="submit" class="btn btn-primary">項目を追加する</button>
+        </div>
+      </form>
     </div>
   </div>
 

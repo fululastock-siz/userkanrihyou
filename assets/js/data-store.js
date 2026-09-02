@@ -8,8 +8,27 @@
 
   const STORAGE_KEY = 'earth_residents_management_data_v1';
 
+  // カラムの初期デフォルト定義
+  const DEFAULT_COLUMNS = [
+    { key: 'room', label: '部屋', type: 'text', fixed: true, sortable: true, width: '85px' },
+    { key: 'name', label: '名前', type: 'text', fixed: true, sortable: true, width: '130px' },
+    { key: 'careLevel', label: '介護度', type: 'select', options: ['', '1', '2', '3', '4', '5'], sortable: true, width: '105px' },
+    { key: 'age', label: '年齢', type: 'number', sortable: true, width: '75px' },
+    { key: 'birthday', label: '生年月日', type: 'text', sortable: false, width: '110px' },
+    { key: 'entryDate', label: '入居日', type: 'text', sortable: true, width: '110px' },
+    { key: 'doctor', label: '訪問医', type: 'text', sortable: false, width: '160px' },
+    { key: 'dental', label: '口腔衛生', type: 'text', sortable: false, width: '130px' },
+    { key: 'equipment', label: '福祉用具', type: 'text', sortable: false, width: '160px' },
+    { key: 'foodMain', label: 'ごはん', type: 'text', sortable: false, width: '100px' },
+    { key: 'foodSide', label: 'おかず', type: 'text', sortable: false, width: '100px' },
+    { key: 'foodThick', label: 'とろみ', type: 'select', options: ['', 'あり', '無し'], sortable: false, width: '90px' },
+    { key: 'airConditioner', label: 'エアコン', type: 'select', options: ['〇', '×', ''], sortable: false, width: '90px' },
+    { key: 'earlyFood', label: '早出し', type: 'checkbox', sortable: false, width: '80px' }
+  ];
+
   // デフォルト初期データ（Googleスプレッドシートより抽出）
   const DEFAULT_DATA = {
+    columns: DEFAULT_COLUMNS,
     residents: [
       { id: "res_201", room: "201", floor: 2, name: "熊木　勝", entryDate: "2026/07/14", careLevel: 4, birthday: "S24/06/08", age: 77, doctor: "井上Dr.　城西", dental: "", equipment: "施　車椅子", foodMain: "米飯", foodSide: "普通", foodThick: "", airConditioner: "〇", earlyFood: false, status: "入居中", note: "" },
       { id: "res_202", room: "202", floor: 2, name: "石垣　和子", entryDate: "2025/07/08", careLevel: 4, birthday: "S07/1/12", age: 93, doctor: "堀池Dr.　とやま", dental: "", equipment: "", foodMain: "軟飯", foodSide: "一口", foodThick: "無し", airConditioner: "〇", earlyFood: false, status: "入居中", note: "" },
@@ -101,6 +120,10 @@
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && Array.isArray(parsed.residents)) {
+            // カラム定義が存在しない古いデータの場合はDEFAULT_COLUMNSを適用
+            if (!parsed.columns || !Array.isArray(parsed.columns)) {
+              parsed.columns = DEFAULT_COLUMNS;
+            }
             return parsed;
           }
         }
@@ -128,6 +151,33 @@
       this.listeners.forEach(fn => fn(this.data));
     }
 
+    getColumns() {
+      return this.data.columns || DEFAULT_COLUMNS;
+    }
+
+    addColumn(columnDef) {
+      if (!this.data.columns) {
+        this.data.columns = [...DEFAULT_COLUMNS];
+      }
+      // 重複チェック
+      const existing = this.data.columns.find(c => c.key === columnDef.key);
+      if (existing) {
+        throw new Error(`項目キー "${columnDef.key}" は既に存在します`);
+      }
+      this.data.columns.push(columnDef);
+      this.saveData();
+    }
+
+    removeColumn(columnKey) {
+      if (!this.data.columns) return;
+      const col = this.data.columns.find(c => c.key === columnKey);
+      if (col && col.fixed) {
+        throw new Error(`「${col.label}」は必須の固定項目のため削除できません`);
+      }
+      this.data.columns = this.data.columns.filter(c => c.key !== columnKey);
+      this.saveData();
+    }
+
     getAllResidents() {
       return this.data.residents;
     }
@@ -138,6 +188,29 @@
 
     getResidentByRoom(room) {
       return this.data.residents.find(r => String(r.room) === String(room)) || null;
+    }
+
+    updateResidentField(residentId, fieldKey, value) {
+      const res = this.getResidentById(residentId);
+      if (res) {
+        // 型に応じた変換
+        if (fieldKey === 'age') {
+          res[fieldKey] = value !== '' && !isNaN(value) ? parseInt(value, 10) : null;
+        } else if (fieldKey === 'careLevel') {
+          res[fieldKey] = value !== '' && !isNaN(value) ? parseInt(value, 10) : (value || null);
+        } else if (fieldKey === 'earlyFood') {
+          res[fieldKey] = Boolean(value);
+        } else {
+          res[fieldKey] = value;
+        }
+
+        // 氏名が変更されて空になった場合のステータス調整
+        if (fieldKey === 'name') {
+          res.status = (value && String(value).trim() !== '') ? '入居中' : '空室';
+        }
+
+        this.saveData();
+      }
     }
 
     saveResident(residentData) {

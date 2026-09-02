@@ -104,28 +104,22 @@
      * スプレッドシートに直接貼り付け可能なTSVテキストをクリップボードにコピー
      */
     copyTsvToClipboard() {
-      const residents = window.DataStore.getAllResidents();
+      const dataStore = window.DataStore;
+      const residents = dataStore.getAllResidents();
+      const columns = dataStore.getColumns();
+
       const rows = [
-        ['部屋番号', '名前', '入居日', '介護度', '誕生日', '年齢', '訪問医', '口腔衛生', '福祉用具', 'ごはん', 'おかず', 'とろみ', 'エアコン', '早出し'].join('\t')
+        columns.map(c => c.label).join('\t')
       ];
 
       residents.forEach(r => {
-        rows.push([
-          r.room,
-          r.name || '',
-          r.entryDate || '',
-          r.careLevel || '',
-          r.birthday || '',
-          r.age || '',
-          r.doctor || '',
-          r.dental || '',
-          r.equipment || '',
-          r.foodMain || '',
-          r.foodSide || '',
-          r.foodThick || '',
-          r.airConditioner || '〇',
-          r.earlyFood ? '早出し' : ''
-        ].join('\t'));
+        rows.push(
+          columns.map(c => {
+            const val = r[c.key];
+            if (c.key === 'earlyFood') return val ? '早出し' : '';
+            return val !== undefined && val !== null ? val : '';
+          }).join('\t')
+        );
       });
 
       const tsvText = rows.join('\n');

@@ -18,29 +18,21 @@
 
       const wb = XLSX.utils.book_new();
 
-      // 1. 入居者管理表シート
-      const residentRows = [
-        ['部屋番号', '名前', '入居日', '介護度', '誕生日', '年齢', '訪問医', '口腔衛生', '福祉用具', 'ごはん', 'おかず', 'とろみ', 'エアコン', '早出し', '状態']
-      ];
+      // 1. 入居者管理表シート（動的カラム対応）
+      const columns = dataStore.getColumns();
+      const residentHeaders = columns.map(c => c.label);
+      residentHeaders.push('状態');
+
+      const residentRows = [residentHeaders];
 
       residents.forEach(r => {
-        residentRows.push([
-          r.room,
-          r.name || '',
-          r.entryDate || '',
-          r.careLevel || '',
-          r.birthday || '',
-          r.age || '',
-          r.doctor || '',
-          r.dental || '',
-          r.equipment || '',
-          r.foodMain || '',
-          r.foodSide || '',
-          r.foodThick || '',
-          r.airConditioner || '〇',
-          r.earlyFood ? '早出し' : '',
-          r.status || ''
-        ]);
+        const row = columns.map(c => {
+          const val = r[c.key];
+          if (c.key === 'earlyFood') return val ? '早出し' : '';
+          return val !== undefined && val !== null ? val : '';
+        });
+        row.push(r.status || '');
+        residentRows.push(row);
       });
 
       // 集計行を追加
@@ -120,28 +112,20 @@
     exportToCsv() {
       const dataStore = window.DataStore;
       const residents = dataStore.getAllResidents();
+      const columns = dataStore.getColumns();
 
       const residentRows = [
-        ['部屋番号', '名前', '入居日', '介護度', '誕生日', '年齢', '訪問医', '口腔衛生', '福祉用具', 'ごはん', 'おかず', 'とろみ', 'エアコン', '早出し']
+        columns.map(c => c.label)
       ];
 
       residents.forEach(r => {
-        residentRows.push([
-          r.room,
-          r.name || '',
-          r.entryDate || '',
-          r.careLevel || '',
-          r.birthday || '',
-          r.age || '',
-          r.doctor || '',
-          r.dental || '',
-          r.equipment || '',
-          r.foodMain || '',
-          r.foodSide || '',
-          r.foodThick || '',
-          r.airConditioner || '〇',
-          r.earlyFood ? '早出し' : ''
-        ]);
+        residentRows.push(
+          columns.map(c => {
+            const val = r[c.key];
+            if (c.key === 'earlyFood') return val ? '早出し' : '';
+            return val !== undefined && val !== null ? val : '';
+          })
+        );
       });
 
       const ws = XLSX.utils.aoa_to_sheet(residentRows);

@@ -194,16 +194,59 @@
   }
 
   /**
-   * 全体管理表の描画
+   * 全体管理表のヘッダーおよびボディの描画（インライン直接編集対応）
    */
   function renderAllResidentsTable() {
+    const thead = document.getElementById('resident-table-head');
+    const tbody = elements.residentTableBody;
+    if (!tbody || !thead) return;
+
+    const columns = window.DataStore.getColumns();
+
+    // 1. ヘッダーの描画
+    thead.innerHTML = `
+      <tr>
+        ${columns.map(col => {
+          const isSortable = col.sortable;
+          const sortIndicator = isSortable ? (state.sortField === col.key ? (state.sortAsc ? ' 🔼' : ' 🔽') : ' ↕') : '';
+          const removeBtn = !col.fixed 
+            ? `<button class="btn-remove-col" onclick="event.stopPropagation(); window.EarthApp.removeColumn('${col.key}', '${col.label}')" title="この項目を削除">×</button>` 
+            : '';
+
+          return `
+            <th class="${isSortable ? 'sortable' : ''}" data-sort="${col.key}" style="width: ${col.width || 'auto'};">
+              <div class="col-header-cell">
+                <span>${col.label}${sortIndicator}</span>
+                ${removeBtn}
+              </div>
+            </th>
+          `;
+        }).join('')}
+        <th class="action-col" style="text-align: right; width: 120px;">操作</th>
+      </tr>
+    `;
+
+    // ヘッダークリックのソートイベント
+    thead.querySelectorAll('th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const field = th.dataset.sort;
+        if (state.sortField === field) {
+          state.sortAsc = !state.sortAsc;
+        } else {
+          state.sortField = field;
+          state.sortAsc = true;
+        }
+        renderAllResidentsTable();
+      });
+    });
+
+    // 2. ボディの描画
     const list = getFilteredResidents();
-    if (!elements.residentTableBody) return;
 
     if (list.length === 0) {
-      elements.residentTableBody.innerHTML = `
+      tbody.innerHTML = `
         <tr>
-          <td colspan="12" style="text-align: center; padding: 36px; color: var(--earth-muted);">
+          <td colspan="${columns.length + 1}" style="text-align: center; padding: 36px; color: var(--earth-muted);">
             該当する入居者データが見つかりませんでした。
           </td>
         </tr>
@@ -211,34 +254,131 @@
       return;
     }
 
-    elements.residentTableBody.innerHTML = list.map(r => {
+    tbody.innerHTML = list.map(r => {
       const isEmpty = !r.name || r.name.trim() === '';
-      const foodTags = [];
-      if (r.foodMain) foodTags.push(`<span class="tag-food">${r.foodMain}</span>`);
-      if (r.foodSide) foodTags.push(`<span class="tag-food">${r.foodSide}</span>`);
-      if (r.foodThick && r.foodThick.includes('あり')) foodTags.push(`<span class="tag-thick">とろみ有</span>`);
-      if (r.earlyFood) foodTags.push(`<span class="tag-early">早出し</span>`);
 
-      const equipmentHtml = r.equipment 
-        ? r.equipment.split(',').map(e => `<span class="tag-equipment">${e.trim()}</span>`).join(' ') 
-        : '-';
+      const cellsHtml = columns.map(col => {
+        const val = r[col.key] !== undefined && r[col.key] !== null ? r[col.key] : '';
+
+        // 部屋番号
+        if (col.key === 'room') {
+          return `
+            <td>
+              <input type="text" class="cell-input font-num" style="font-weight: 800; width: 60px;" value="${val}"
+                onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="号室">
+            </td>
+          `;
+        }
+
+        // 氏名
+        if (col.key === 'name') {
+          return `
+            <td>
+              <input type="text" class="cell-input" style="font-weight: 700; color: ${val ? 'var(--earth-ink)' : '#9ca3af'};" value="${val}"
+                onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="(空室)">
+            </td>
+          `;
+        }
+
+        // 介護度
+        if (col.key === 'careLevel') {
+          return `
+            <td>
+              <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
+                <option value="" ${!val ? 'selected' : ''}>未設定</option>
+                <option value="1" ${String(val) === '1' ? 'selected' : ''}>要介護 1</option>
+                <option value="2" ${String(val) === '2' ? 'selected' : ''}>要介護 2</option>
+                <option value="3" ${String(val) === '3' ? 'selected' : ''}>要介護 3</option>
+                <option value="4" ${String(val) === '4' ? 'selected' : ''}>要介護 4</option>
+                <option value="5" ${String(val) === '5' ? 'selected' : ''}>要介護 5</option>
+              </select>
+            </td>
+          `;
+        }
+
+        // エアコン
+        if (col.key === 'airConditioner') {
+          return `
+            <td style="text-align: center;">
+              <select class="cell-select" style="text-align: center; font-weight: bold;" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
+                <option value="〇" ${val === '〇' ? 'selected' : ''}>〇</option>
+                <option value="×" ${val === '×' ? 'selected' : ''}>×</option>
+                <option value="" ${!val ? 'selected' : ''}>-</option>
+              </select>
+            </td>
+          `;
+        }
+
+        // 早出し
+        if (col.key === 'earlyFood') {
+          return `
+            <td style="text-align: center;">
+              <input type="checkbox" class="cell-checkbox" ${val ? 'checked' : ''}
+                onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.checked)">
+            </td>
+          `;
+        }
+
+        // とろみ
+        if (col.key === 'foodThick') {
+          return `
+            <td>
+              <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
+                <option value="" ${!val ? 'selected' : ''}>-</option>
+                <option value="あり" ${val === 'あり' ? 'selected' : ''}>あり</option>
+                <option value="無し" ${val === '無し' ? 'selected' : ''}>無し</option>
+              </select>
+            </td>
+          `;
+        }
+
+        // 動的セレクトタイプ
+        if (col.type === 'select' && Array.isArray(col.options)) {
+          return `
+            <td>
+              <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
+                <option value="">-</option>
+                ${col.options.map(opt => `<option value="${opt}" ${String(val) === String(opt) ? 'selected' : ''}>${opt}</option>`).join('')}
+              </select>
+            </td>
+          `;
+        }
+
+        // 動的チェックボックス
+        if (col.type === 'checkbox') {
+          return `
+            <td style="text-align: center;">
+              <input type="checkbox" class="cell-checkbox" ${val ? 'checked' : ''}
+                onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.checked)">
+            </td>
+          `;
+        }
+
+        // 数値型
+        if (col.type === 'number') {
+          return `
+            <td>
+              <input type="number" class="cell-input font-num" value="${val}"
+                onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="-">
+            </td>
+          `;
+        }
+
+        // 通常テキスト入力
+        return `
+          <td>
+            <input type="text" class="cell-input" value="${val}"
+              onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="-">
+          </td>
+        `;
+      }).join('');
 
       return `
         <tr class="${isEmpty ? 'is-empty-room' : ''}">
-          <td><span class="room-badge">${r.room}</span></td>
-          <td style="font-weight: 700;">${r.name || '<span style="color:#aaa;">(空室)</span>'}</td>
-          <td>${getCareLevelBadge(r.careLevel)}</td>
-          <td class="font-num">${r.age ? `${r.age}歳` : '-'}</td>
-          <td class="font-num">${r.birthday || '-'}</td>
-          <td class="font-num">${r.entryDate || '-'}</td>
-          <td>${r.doctor || '-'}</td>
-          <td>${r.dental || '-'}</td>
-          <td>${equipmentHtml}</td>
-          <td>${foodTags.length > 0 ? foodTags.join('') : '-'}</td>
-          <td style="text-align: center;">${r.airConditioner === '〇' ? '<span style="color:var(--earth-success); font-weight:bold;">〇</span>' : (r.airConditioner === '×' ? '<span style="color:var(--earth-danger); font-weight:bold;">×</span>' : '-')}</td>
+          ${cellsHtml}
           <td class="action-col" style="text-align: right; white-space: nowrap;">
-            <button class="btn btn-outline btn-sm" onclick="window.EarthApp.openEditModal('${r.id}')">編集</button>
-            ${!isEmpty ? `<button class="btn btn-danger btn-sm" onclick="window.EarthApp.openMoveOutModal('${r.id}')">退去・異動</button>` : ''}
+            <button class="btn btn-outline btn-sm" onclick="window.EarthApp.openEditModal('${r.id}')" title="ダイアログで詳細編集">詳細</button>
+            ${!isEmpty ? `<button class="btn btn-danger btn-sm" onclick="window.EarthApp.openMoveOutModal('${r.id}')" title="退去・異動処理">退去</button>` : ''}
           </td>
         </tr>
       `;
@@ -732,6 +872,63 @@
       }
     });
 
+    // 管理項目（列）追加モーダル開閉
+    const addColModal = document.getElementById('add-column-modal');
+    const btnOpenAddCol = document.getElementById('btn-open-add-col-modal');
+    const addColForm = document.getElementById('add-column-form');
+    const newColTypeSelect = document.getElementById('new-col-type');
+    const newColOptionsGroup = document.getElementById('new-col-options-group');
+
+    if (btnOpenAddCol && addColModal) {
+      btnOpenAddCol.addEventListener('click', () => {
+        if (addColForm) addColForm.reset();
+        if (newColOptionsGroup) newColOptionsGroup.style.display = 'none';
+        addColModal.classList.add('active');
+      });
+    }
+
+    if (newColTypeSelect && newColOptionsGroup) {
+      newColTypeSelect.addEventListener('change', (e) => {
+        if (e.target.value === 'select') {
+          newColOptionsGroup.style.display = 'block';
+        } else {
+          newColOptionsGroup.style.display = 'none';
+        }
+      });
+    }
+
+    if (addColForm) {
+      addColForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const label = addColForm.label.value.trim();
+        const key = addColForm.key.value.trim().replace(/\s+/g, '');
+        const type = addColForm.type.value;
+        const optionsRaw = addColForm.options ? addColForm.options.value : '';
+        const options = optionsRaw ? optionsRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+
+        if (!label || !key) {
+          showToast('項目名とキーを入力してください', 'warning');
+          return;
+        }
+
+        try {
+          window.DataStore.addColumn({
+            key,
+            label,
+            type,
+            options: type === 'select' ? options : undefined,
+            sortable: true,
+            width: '120px'
+          });
+          closeModal(addColModal);
+          showToast(`新しい管理項目「${label}」を追加しました！`);
+          renderAll();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    }
+
     // 編集フォーム送信
     elements.residentForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -789,8 +986,35 @@
 
     // データストア購読
     window.DataStore.subscribe(() => {
-      renderAll();
+      renderStatistics();
+      if (state.activeTab === 'floor') renderFloorMap();
+      else if (state.activeTab === 'meal') renderMealView();
+      else if (state.activeTab === 'medical') renderMedicalView();
+      else if (state.activeTab === 'history') renderHistoryView();
     });
+  }
+
+  /**
+   * テーブル内セル直接変更ハンドラー
+   */
+  function onCellChange(residentId, fieldKey, value) {
+    window.DataStore.updateResidentField(residentId, fieldKey, value);
+    showToast(`更新しました (${fieldKey}: ${value !== '' ? value : '空欄'})`);
+  }
+
+  /**
+   * カラム削除
+   */
+  function removeColumn(columnKey, label) {
+    if (confirm(`管理項目「${label}」を削除しますか？`)) {
+      try {
+        window.DataStore.removeColumn(columnKey);
+        showToast(`項目「${label}」を削除しました`);
+        renderAllResidentsTable();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
   }
 
   /**
@@ -854,6 +1078,8 @@
 
   // グローバル公開
   window.EarthApp = {
+    onCellChange,
+    removeColumn,
     openEditModal,
     openMoveOutModal,
     closeModal,
