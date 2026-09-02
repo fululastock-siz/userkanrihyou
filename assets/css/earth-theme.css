@@ -604,11 +604,11 @@ body {
   background-color: #eef5f0;
   color: var(--earth-ink);
   font-weight: 800;
-  padding: 13px 14px;
+  padding: 8px 3px;
   border-bottom: 2px solid var(--earth-green-light);
   white-space: nowrap;
-  font-size: 12.5px;
-  letter-spacing: 0.02em;
+  font-size: 11.5px;
+  letter-spacing: 0.01em;
   user-select: none;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -622,10 +622,10 @@ body {
 }
 
 .data-table td {
-  padding: 4px 6px;
+  padding: 2px 2px;
   border-bottom: 1px solid rgba(196, 216, 206, 0.6);
   vertical-align: middle;
-  font-size: 13px;
+  font-size: 12px;
 }
 
 /* 1行ごとの交互配色（白 / 薄いブルー） */
@@ -660,9 +660,9 @@ body {
   left: 0;
   top: 0;
   z-index: 30;
-  width: 50px;
-  min-width: 50px;
-  max-width: 50px;
+  width: 46px;
+  min-width: 46px;
+  max-width: 46px;
   background-color: #e2ede5;
   border-right: 1px solid var(--earth-border);
   text-align: center;
@@ -670,12 +670,12 @@ body {
 
 .data-table th.sticky-col-name {
   position: sticky;
-  left: 50px;
+  left: 46px;
   top: 0;
   z-index: 30;
-  width: 100px;
-  min-width: 100px;
-  max-width: 100px;
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
   background-color: #e2ede5;
   border-right: 2px solid #a3beaf;
   box-shadow: 3px 0 5px -2px rgba(0, 0, 0, 0.12);
@@ -686,9 +686,9 @@ body {
   position: sticky;
   left: 0;
   z-index: 15;
-  width: 50px;
-  min-width: 50px;
-  max-width: 50px;
+  width: 46px;
+  min-width: 46px;
+  max-width: 46px;
   background-color: #ffffff;
   border-right: 1px solid var(--earth-border);
   text-align: center;
@@ -696,11 +696,11 @@ body {
 
 .data-table tbody tr:nth-child(odd) td.sticky-col-name {
   position: sticky;
-  left: 50px;
+  left: 46px;
   z-index: 15;
-  width: 100px;
-  min-width: 100px;
-  max-width: 100px;
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
   background-color: #ffffff;
   border-right: 2px solid #a3beaf;
   box-shadow: 3px 0 5px -2px rgba(0, 0, 0, 0.12);
@@ -711,9 +711,9 @@ body {
   position: sticky;
   left: 0;
   z-index: 15;
-  width: 50px;
-  min-width: 50px;
-  max-width: 50px;
+  width: 46px;
+  min-width: 46px;
+  max-width: 46px;
   background-color: #f0f7ff;
   border-right: 1px solid var(--earth-border);
   text-align: center;
@@ -721,11 +721,11 @@ body {
 
 .data-table tbody tr:nth-child(even) td.sticky-col-name {
   position: sticky;
-  left: 50px;
+  left: 46px;
   z-index: 15;
-  width: 100px;
-  min-width: 100px;
-  max-width: 100px;
+  width: 90px;
+  min-width: 90px;
+  max-width: 90px;
   background-color: #f0f7ff;
   border-right: 2px solid #a3beaf;
   box-shadow: 3px 0 5px -2px rgba(0, 0, 0, 0.12);
@@ -752,13 +752,15 @@ body {
   width: 100%;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 3px 4px;
-  font-size: 12.5px;
+  padding: 2px 2px;
+  font-size: 11.5px;
   font-family: inherit;
+  font-weight: 600;
   color: var(--earth-ink);
-  background: transparent;
-  transition: all 0.2s ease;
+  background-color: transparent;
   outline: none;
+  transition: all 0.2s ease;
+  text-overflow: ellipsis;
 }
 
 .cell-input:hover {
@@ -776,16 +778,16 @@ body {
   width: 100%;
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 3px 12px 3px 3px;
-  font-size: 12px;
+  padding: 2px 9px 2px 2px;
+  font-size: 11px;
   font-family: inherit;
   font-weight: 700;
   color: var(--earth-ink);
   background-color: transparent;
   background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23247d1b%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E');
   background-repeat: no-repeat;
-  background-position: right 2px center;
-  background-size: 7px auto;
+  background-position: right 1px center;
+  background-size: 6px auto;
   appearance: none;
   cursor: pointer;
   outline: none;

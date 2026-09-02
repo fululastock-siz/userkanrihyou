@@ -246,15 +246,13 @@
 
           return `
             <th class="${isSortable ? 'sortable' : ''} ${stickyClass}" data-col-key="${col.key}" data-sort="${col.key}" ${dragAttr} style="width: ${col.width || 'auto'}; ${cursorStyle}" title="${isFixedCol ? '固定列（クリックで並び替え）' : 'クリックで並び替え、ドラッグで列の移動'}">
-              <div class="col-header-cell" style="justify-content: ${isFixedCol ? 'center' : 'space-between'};">
-                ${handleHtml}
-                <span style="flex:1; margin: 0 2px; text-align: ${isFixedCol ? 'center' : 'left'}; font-size: 12.5px;">${col.label}${sortIndicator}</span>
-                ${removeBtn}
+              <div class="col-header-cell" style="justify-content: center; gap: 1px;">
+                <span style="margin: 0; text-align: center; font-size: 11.5px; white-space: nowrap;">${col.label}${sortIndicator}</span>
               </div>
             </th>
           `;
         }).join('')}
-        <th class="action-col" style="text-align: right; width: 110px;">操作</th>
+        <th class="action-col" style="text-align: center; width: 68px;">操作</th>
       </tr>
     `;
 
@@ -357,17 +355,17 @@
         if (col.key === 'room') {
           return `
             <td class="sticky-col-room">
-              <input type="text" class="cell-input font-num" style="font-weight: 800; width: 65px;" value="${val}"
+              <input type="text" class="cell-input font-num" style="font-weight: 800; width: 100%; text-align: center;" value="${val}"
                 onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="号室">
             </td>
           `;
         }
 
-        // 名前（必ずフルネーム表示）
+        // 名前（フルネーム）
         if (col.key === 'name') {
           return `
             <td class="sticky-col-name">
-              <input type="text" class="cell-input" style="font-weight: 700; color: ${val ? 'var(--earth-ink)' : '#9ca3af'}; min-width: 120px;" value="${val}"
+              <input type="text" class="cell-input" style="font-weight: 700; color: ${val ? 'var(--earth-ink)' : '#9ca3af'}; width: 100%; font-size: 12.5px;" value="${val}"
                 onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="(空室)">
             </td>
           `;
@@ -473,12 +471,30 @@
           masterOptions.unshift(String(val));
         }
 
+        // 短縮表示ラベルの生成（画面幅最大節約）
+        const formatOptionLabel = (key, text) => {
+          if (!text) return '-';
+          const s = String(text).trim();
+          if (key === 'doctor') {
+            // 訪問医：最初のDr名部分（例: 堀池Dr.）または最初の5文字
+            const parts = s.split(/[\s　]+/);
+            return parts[0] || s.substring(0, 5);
+          }
+          if (key === 'equipment') {
+            return s.length > 6 ? s.substring(0, 6) + '…' : s;
+          }
+          if (key === 'dental') {
+            return s.length > 6 ? s.substring(0, 6) + '…' : s;
+          }
+          return s;
+        };
+
         // リスト選択式セルのレンダリング
         return `
-          <td>
-            <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
+          <td title="${val || '-'}">
+            <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" title="${val || '-'}">
               <option value="">-</option>
-              ${masterOptions.map(opt => `<option value="${opt}" ${String(val) === String(opt) ? 'selected' : ''}>${opt}</option>`).join('')}
+              ${masterOptions.map(opt => `<option value="${opt}" ${String(val) === String(opt) ? 'selected' : ''}>${formatOptionLabel(col.key, opt)}</option>`).join('')}
             </select>
           </td>
         `;
@@ -487,9 +503,9 @@
       return `
         <tr class="${isEmpty ? 'is-empty-room' : ''}">
           ${cellsHtml}
-          <td class="action-col" style="text-align: right; white-space: nowrap;">
-            <button class="btn btn-outline btn-sm" onclick="window.EarthApp.openEditModal('${r.id}')" title="ダイアログで詳細確認">詳細</button>
-            ${!isEmpty ? `<button class="btn btn-danger btn-sm" onclick="window.EarthApp.openMoveOutModal('${r.id}')" title="退去・異動処理">退去</button>` : ''}
+          <td class="action-col" style="text-align: center; white-space: nowrap; padding: 2px 3px;">
+            <button class="btn btn-outline btn-sm" style="padding: 2px 6px; font-size: 11px; border-radius: 4px;" onclick="window.EarthApp.openEditModal('${r.id}')" title="詳細確認・編集">詳細</button>
+            ${!isEmpty ? `<button class="btn btn-danger btn-sm" style="padding: 2px 6px; font-size: 11px; border-radius: 4px;" onclick="window.EarthApp.openMoveOutModal('${r.id}')" title="退去・異動処理">退去</button>` : ''}
           </td>
         </tr>
       `;

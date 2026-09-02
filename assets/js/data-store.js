@@ -183,22 +183,22 @@
     return `${g}${String(gy).padStart(2, '0')}/${mStr}/${dStr}`;
   }
 
-  // カラムの初期デフォルト定義（ジャストフィット極小幅化）
+  // カラムの初期デフォルト定義（極小ジャストフィット・画面幅最大節約）
   const DEFAULT_COLUMNS = [
-    { key: 'room', label: '部屋', type: 'text', fixed: true, sortable: true, width: '50px' },
-    { key: 'name', label: '名前', type: 'text', fixed: true, sortable: true, width: '100px' },
-    { key: 'careLevel', label: '介護度', type: 'select', masterKey: 'careLevel', options: ['', '介1', '介2', '介3', '介4', '介5', '自立', '支1', '支2'], sortable: true, width: '50px' },
-    { key: 'age', label: '年齢', type: 'number', sortable: true, width: '38px' },
-    { key: 'birthday', label: '生年月日', type: 'text', sortable: false, width: '84px' },
-    { key: 'entryDate', label: '入居日', type: 'text', sortable: true, width: '78px' },
-    { key: 'doctor', label: '訪問医', type: 'select', masterKey: 'doctor', sortable: false, width: '125px' },
-    { key: 'dental', label: '口腔衛生', type: 'select', masterKey: 'dental', sortable: false, width: '110px' },
-    { key: 'equipment', label: '福祉用具', type: 'select', masterKey: 'equipment', sortable: false, width: '130px' },
-    { key: 'foodMain', label: 'ごはん', type: 'select', masterKey: 'foodMain', sortable: false, width: '70px' },
-    { key: 'foodSide', label: 'おかず', type: 'select', masterKey: 'foodSide', sortable: false, width: '70px' },
-    { key: 'foodThick', label: 'とろみ', type: 'select', masterKey: 'foodThick', sortable: false, width: '60px' },
-    { key: 'airConditioner', label: 'エアコン', type: 'select', masterKey: 'airConditioner', sortable: false, width: '50px' },
-    { key: 'earlyFood', label: '早出し', type: 'checkbox', sortable: false, width: '50px' }
+    { key: 'room', label: '部屋', type: 'text', fixed: true, sortable: true, width: '46px' },
+    { key: 'name', label: '名前', type: 'text', fixed: true, sortable: true, width: '90px' },
+    { key: 'careLevel', label: '介護度', type: 'select', masterKey: 'careLevel', options: ['', '介1', '介2', '介3', '介4', '介5', '自立', '支1', '支2'], sortable: true, width: '46px' },
+    { key: 'age', label: '年齢', type: 'number', sortable: true, width: '35px' },
+    { key: 'birthday', label: '生年月日', type: 'text', sortable: false, width: '78px' },
+    { key: 'entryDate', label: '入居日', type: 'text', sortable: true, width: '72px' },
+    { key: 'doctor', label: '訪問医', type: 'select', masterKey: 'doctor', sortable: false, width: '78px' },
+    { key: 'dental', label: '口腔衛生', type: 'select', masterKey: 'dental', sortable: false, width: '72px' },
+    { key: 'equipment', label: '福祉用具', type: 'select', masterKey: 'equipment', sortable: false, width: '80px' },
+    { key: 'foodMain', label: 'ごはん', type: 'select', masterKey: 'foodMain', sortable: false, width: '54px' },
+    { key: 'foodSide', label: 'おかず', type: 'select', masterKey: 'foodSide', sortable: false, width: '54px' },
+    { key: 'foodThick', label: 'とろみ', type: 'select', masterKey: 'foodThick', sortable: false, width: '46px' },
+    { key: 'airConditioner', label: 'エアコン', type: 'select', masterKey: 'airConditioner', sortable: false, width: '42px' },
+    { key: 'earlyFood', label: '早出し', type: 'checkbox', sortable: false, width: '42px' }
   ];
 
   // デフォルト初期データ（Googleスプレッドシートより抽出）
