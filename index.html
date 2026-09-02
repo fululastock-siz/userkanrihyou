@@ -29,36 +29,46 @@
   </div>
 
   <div class="app-wrapper">
-    <!-- ヘッダー -->
+    <!-- ヘッダー（スリム＆スッキリデザイン） -->
     <header class="app-header">
       <div class="header-container">
         <div class="brand-section">
           <div class="brand-mark">E</div>
           <div class="brand-title-group">
-            <small>EARTH CARE GROUP</small>
             <h1>入居者管理システム</h1>
+            <span class="brand-badge">EARTH CARE GROUP</span>
           </div>
         </div>
 
         <div class="header-actions">
-          <button class="btn btn-primary" id="btn-header-wiseman-import" onclick="window.EarthApp.switchTab('import')" title="ワイズマンのExcel/CSVを取り込んでデータを更新">
-            📥 ワイズマンデータ読込
+          <button class="btn btn-primary btn-sm" id="btn-header-wiseman-import" onclick="window.EarthApp.switchTab('import')" title="ワイズマンのExcel/CSVを取り込んでデータを更新">
+            📥 ワイズマン読込
           </button>
-          <button class="btn btn-outline" id="btn-sheet-sync-modal" title="Googleスプレッドシートと双方向同期・連携">
-            📊 スプレッドシート連携
-          </button>
-          <button class="btn btn-outline" id="btn-export-excel" title="現在の管理表をExcel(.xlsx)形式で保存">
+          <button class="btn btn-outline btn-sm" id="btn-export-excel" title="現在の管理表をExcel(.xlsx)形式で保存">
             📤 Excel出力
           </button>
-          <button class="btn btn-outline" id="btn-export-csv" title="CSV形式で保存">
-            📄 CSV出力
+          <button class="btn btn-outline btn-sm" id="btn-print" title="印刷またはPDFとして保存">
+            🖨️ 印刷 (A4)
           </button>
-          <button class="btn btn-outline" id="btn-print" title="印刷またはPDFとして保存">
-            🖨️ 帳票印刷 (A4)
-          </button>
-          <button class="btn btn-outline btn-sm" id="btn-reset-data" style="margin-left: 6px; color: var(--earth-muted);" title="初期データに戻す">
-            🔄 初期化
-          </button>
+
+          <!-- ⚙️ その他メニュー（ドロップダウン） -->
+          <div class="dropdown" id="header-more-dropdown">
+            <button class="btn btn-outline btn-sm" type="button" onclick="window.EarthApp.toggleHeaderMenu(event)" title="その他の機能">
+              ⚙️ その他 ▾
+            </button>
+            <div class="dropdown-menu" id="header-more-menu">
+              <button type="button" class="dropdown-item" id="btn-sheet-sync-modal">
+                📊 スプレッドシート連携
+              </button>
+              <button type="button" class="dropdown-item" id="btn-export-csv">
+                📄 CSV出力
+              </button>
+              <div class="dropdown-divider"></div>
+              <button type="button" class="dropdown-item text-danger" id="btn-reset-data">
+                🔄 データ初期化
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </header>
@@ -869,11 +879,11 @@
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_9"></script>
-  <script src="assets/js/excel-importer.js?v=20260902_9"></script>
-  <script src="assets/js/excel-exporter.js?v=20260902_9"></script>
-  <script src="assets/js/google-sheet-sync.js?v=20260902_9"></script>
-  <script src="assets/js/app.js?v=20260902_9"></script>
+  <script src="assets/js/data-store.js?v=20260902_10"></script>
+  <script src="assets/js/excel-importer.js?v=20260902_10"></script>
+  <script src="assets/js/excel-exporter.js?v=20260902_10"></script>
+  <script src="assets/js/google-sheet-sync.js?v=20260902_10"></script>
+  <script src="assets/js/app.js?v=20260902_10"></script>
 
   <script>
     // 印刷日時

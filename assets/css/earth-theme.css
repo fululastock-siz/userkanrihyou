@@ -68,15 +68,15 @@ body {
   min-height: 100vh;
 }
 
-/* ヘッダー */
+/* ヘッダー（スリム＆スッキリデザイン） */
 .app-header {
   background: #ffffff;
   border-bottom: 1px solid var(--earth-border);
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   position: sticky;
   top: 0;
   z-index: 1000;
-  padding: 12px 24px;
+  padding: 8px 20px;
 }
 
 .header-container {
@@ -85,61 +85,127 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 20px;
+  gap: 16px;
 }
 
 .brand-section {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   text-decoration: none;
   color: inherit;
-}
-
-.brand-logo-img {
-  height: 42px;
-  width: auto;
-  object-fit: contain;
+  white-space: nowrap;
 }
 
 .brand-mark {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   background: linear-gradient(135deg, var(--earth-green), var(--earth-green-dark));
   color: #ffffff;
   display: grid;
   place-items: center;
-  font: 900 22px/1 'Manrope', serif;
-  box-shadow: 0 4px 12px rgba(36, 125, 27, 0.28);
+  font: 900 17px/1 'Manrope', serif;
+  box-shadow: 0 2px 8px rgba(36, 125, 27, 0.22);
+}
+
+.brand-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
 }
 
 .brand-title-group h1 {
   font-family: 'Shippori Mincho', serif;
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
   color: var(--earth-ink);
-  letter-spacing: 0.04em;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+  letter-spacing: 0.02em;
+  margin: 0;
+  white-space: nowrap;
 }
 
-.brand-title-group small {
-  display: block;
+.brand-badge {
   font-family: 'Manrope', sans-serif;
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 800;
-  color: var(--earth-green);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  color: var(--earth-green-dark);
+  background: var(--earth-green-light);
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
 }
 
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+/* ヘッダードロップダウンメニュー */
+.dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown-menu {
+  display: none;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  background: #ffffff;
+  min-width: 190px;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--earth-border);
+  padding: 6px 0;
+  z-index: 1050;
+}
+
+.dropdown-menu.show {
+  display: block;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--earth-ink);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dropdown-item:hover {
+  background: #f1f5f9;
+  color: var(--earth-green-dark);
+}
+
+.dropdown-item.text-danger {
+  color: var(--earth-danger);
+}
+.dropdown-item.text-danger:hover {
+  background: #fef2f2;
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--earth-border);
+  margin: 5px 0;
 }
 
 /* ナビゲーションタブ */

@@ -1644,10 +1644,40 @@
     showToast('表示項目を初期状態に戻しました');
   }
 
+  // ヘッダー「その他」ドロップダウンの開閉
+  function toggleHeaderMenu(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('header-more-menu');
+    if (menu) {
+      menu.classList.toggle('show');
+    }
+  }
+
+  function openSheetSyncModal() {
+    const sheetSyncModal = document.getElementById('sheet-sync-modal');
+    if (sheetSyncModal) {
+      const gasInput = document.getElementById('gas-web-app-url');
+      if (gasInput) {
+        gasInput.value = window.GoogleSheetSync.settings.gasWebAppUrl || '';
+      }
+      sheetSyncModal.classList.add('active');
+    }
+    const menu = document.getElementById('header-more-menu');
+    if (menu) menu.classList.remove('show');
+  }
+
   // アプリケーション初期化
   function init() {
     setupEventListeners();
     renderAll();
+
+    // ドロップダウンメニュー外クリックで閉じる
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('header-more-menu');
+      if (menu && menu.classList.contains('show') && !e.target.closest('#header-more-dropdown')) {
+        menu.classList.remove('show');
+      }
+    });
 
     // スプラッシュ画面のフェードアウト
     setTimeout(() => {
@@ -1676,7 +1706,9 @@
     selectStandardColumns,
     selectMealColumns,
     resetColumnsVisibility,
-    filterCareManagerAlert
+    filterCareManagerAlert,
+    toggleHeaderMenu,
+    openSheetSyncModal
   };
 
   // 起動
