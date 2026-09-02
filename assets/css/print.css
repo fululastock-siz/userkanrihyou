@@ -1,0 +1,142 @@
+/* ==========================================================================
+   入居者管理システム 印刷用スタイルシート (print.css)
+   ========================================================================== */
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 10mm;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 10pt;
+    line-height: 1.3;
+  }
+
+  /* 非表示にする要素 */
+  .app-header,
+  .nav-tabs-wrapper,
+  .toolbar-card,
+  .header-actions,
+  .btn,
+  .modal-overlay,
+  .toast-container,
+  #earth-splash-screen,
+  .action-col,
+  .no-print {
+    display: none !important;
+  }
+
+  .main-content {
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+
+  /* 印刷用ヘッダー */
+  .print-header {
+    display: flex !important;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 2px solid #247d1b;
+    padding-bottom: 6px;
+    margin-bottom: 12px;
+  }
+
+  .print-header h1 {
+    font-size: 16pt;
+    font-weight: bold;
+    color: #247d1b;
+  }
+
+  .print-header .print-meta {
+    font-size: 9pt;
+    color: #555;
+  }
+
+  /* サマリーカードの縮小印刷 */
+  .summary-grid {
+    display: grid !important;
+    grid-template-columns: repeat(6, 1fr) !important;
+    gap: 8px !important;
+    margin-bottom: 12px !important;
+    page-break-inside: avoid;
+  }
+
+  .summary-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    padding: 8px 10px !important;
+    border-radius: 6px !important;
+  }
+
+  .summary-card-value {
+    font-size: 16pt !important;
+  }
+
+  .summary-card-icon {
+    display: none !important;
+  }
+
+  /* テーブルの印刷最適化 */
+  .table-card {
+    border: 1px solid #ccc !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .data-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 8.5pt !important;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 4px 6px !important;
+    border: 1px solid #999 !important;
+  }
+
+  .data-table th {
+    background-color: #eee !important;
+    color: #000 !important;
+  }
+
+  .badge {
+    border: 1px solid #666;
+    padding: 1px 4px;
+    font-size: 8pt;
+  }
+
+  /* 改ページ設定 */
+  .page-break {
+    page-break-before: always;
+  }
+
+  tr {
+    page-break-inside: avoid;
+  }
+
+  /* フロアマップ印刷最適化 */
+  .floor-grid {
+    grid-template-columns: repeat(5, 1fr) !important;
+    gap: 6px !important;
+  }
+
+  .room-card {
+    border: 1px solid #999 !important;
+    box-shadow: none !important;
+    padding: 6px 8px !important;
+    page-break-inside: avoid;
+  }
+
+  .room-card-num {
+    font-size: 11pt !important;
+  }
+
+  .room-card-name {
+    font-size: 10pt !important;
+  }
+}

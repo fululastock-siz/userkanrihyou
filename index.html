@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>入居者管理システム | 株式会社アース</title>
+  
+  <!-- Google Fonts: Shippori Mincho, Manrope, Noto Sans JP -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;700;800;900&family=Noto+Sans+JP:wght@400;500;700;800;900&family=Shippori+Mincho:wght@500;700;800&display=swap" rel="stylesheet">
+
+  <!-- スタイルシート -->
+  <link rel="stylesheet" href="assets/css/earth-theme.css">
+  <link rel="stylesheet" href="assets/css/print.css">
+</head>
+<body>
+
+  <!-- スプラッシュ起動スクリーン（アース公式ロゴ） -->
+  <div id="earth-splash-screen">
+    <div class="splash-logo-container">
+      <div class="brand-mark" style="width: 64px; height: 64px; font-size: 36px; border-radius: 16px;">E</div>
+      <div style="text-align: center;">
+        <h2 style="font-family: 'Shippori Mincho', serif; font-size: 22px; color: var(--earth-ink); margin-bottom: 4px;">入居者管理システム</h2>
+        <small style="font-family: 'Manrope', sans-serif; font-weight: 800; color: var(--earth-green); letter-spacing: 0.12em;">EARTH CARE GROUP</small>
+      </div>
+      <div class="splash-spinner"></div>
+    </div>
+  </div>
+
+  <div class="app-wrapper">
+    <!-- ヘッダー -->
+    <header class="app-header">
+      <div class="header-container">
+        <div class="brand-section">
+          <div class="brand-mark">E</div>
+          <div class="brand-title-group">
+            <small>EARTH CARE GROUP</small>
+            <h1>入居者管理システム</h1>
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <button class="btn btn-outline" id="btn-export-excel" title="現在の管理表をExcel(.xlsx)形式で保存">
+            📥 Excel出力
+          </button>
+          <button class="btn btn-outline" id="btn-export-csv" title="CSV形式で保存">
+            📄 CSV出力
+          </button>
+          <button class="btn btn-outline" id="btn-print" title="印刷またはPDFとして保存">
+            🖨️ 帳票印刷 (A4)
+          </button>
+          <button class="btn btn-gold" onclick="window.EarthApp.openEditModal('new')" title="新しい入居者を追加">
+            ➕ 入居者新規登録
+          </button>
+          <button class="btn btn-outline btn-sm" id="btn-reset-data" style="margin-left: 6px; color: var(--earth-muted);" title="初期データに戻す">
+            🔄 初期化
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 印刷用ヘッダー（印刷時のみ表示） -->
+    <div class="print-header no-print" style="display: none;">
+      <div>
+        <h1>株式会社アース 入居者管理表</h1>
+        <div class="print-meta">EARTH CARE GROUP 管理帳票</div>
+      </div>
+      <div class="print-meta" style="text-align: right;">
+        出力日時: <span id="print-date"></span>
+      </div>
+    </div>
+
+    <!-- ナビゲーションタブ -->
+    <div class="nav-tabs-wrapper">
+      <div class="nav-tabs-container">
+        <button class="nav-tab-btn active" data-tab="all">
+          📋 全体管理表
+        </button>
+        <button class="nav-tab-btn" data-tab="floor">
+          🏢 居室フロアマップ (2F/3F)
+        </button>
+        <button class="nav-tab-btn" data-tab="meal">
+          🍚 食事・厨房指示一覧
+        </button>
+        <button class="nav-tab-btn" data-tab="medical">
+          🏥 訪問医・福祉用具
+        </button>
+        <button class="nav-tab-btn" data-tab="history">
+          🕒 異動・退去履歴
+        </button>
+        <button class="nav-tab-btn" data-tab="import" style="color: var(--earth-green-dark); background-color: rgba(36, 125, 27, 0.08);">
+          📥 .xlsファイル読込・更新
+        </button>
+      </div>
+    </div>
+
+    <!-- メインコンテンツ -->
+    <main class="main-content">
+      
+      <!-- 統計サマリーカード -->
+      <section class="summary-grid">
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span>現在の入居者数</span>
+            <span class="summary-card-icon">👥</span>
+          </div>
+          <div class="summary-card-value" id="stat-resident-count">--</div>
+          <div class="summary-card-sub">定員 50名</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span>稼働率 (満床率)</span>
+            <span class="summary-card-icon">📊</span>
+          </div>
+          <div class="summary-card-value" id="stat-occupancy-rate">--</div>
+          <div class="summary-card-sub">入居率</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span>平均要介護度</span>
+            <span class="summary-card-icon">🩺</span>
+          </div>
+          <div class="summary-card-value" id="stat-avg-care">--</div>
+          <div class="summary-card-sub">要介護1〜5</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span>平均年齢</span>
+            <span class="summary-card-icon">🎂</span>
+          </div>
+          <div class="summary-card-value" id="stat-avg-age">--</div>
+          <div class="summary-card-sub">最高齢 103歳</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span>とろみ食対象者</span>
+            <span class="summary-card-icon">🍵</span>
+          </div>
+          <div class="summary-card-value" id="stat-thick-count">--</div>
+          <div class="summary-card-sub">誤嚥予防管理</div>
+        </div>
+
+        <div class="summary-card">
+          <div class="summary-card-header">
+            <span>早出し配膳対象</span>
+            <span class="summary-card-icon">⚡</span>
+          </div>
+          <div class="summary-card-value" id="stat-early-count">--</div>
+          <div class="summary-card-sub">優先配膳</div>
+        </div>
+      </section>
+
+      <!-- フィルター・検索ツールバー -->
+      <section class="toolbar-card">
+        <div class="filter-group">
+          <div class="search-input-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" placeholder="部屋番号、氏名、訪問医、用具等で検索...">
+          </div>
+
+          <select class="filter-select" id="filter-floor">
+            <option value="all">全フロア (2F・3F)</option>
+            <option value="2">2階 (201〜225)</option>
+            <option value="3">3階 (301〜325)</option>
+          </select>
+
+          <select class="filter-select" id="filter-care">
+            <option value="all">すべての介護度</option>
+            <option value="1">要介護 1</option>
+            <option value="2">要介護 2</option>
+            <option value="3">要介護 3</option>
+            <option value="4">要介護 4</option>
+            <option value="5">要介護 5</option>
+          </select>
+
+          <select class="filter-select" id="filter-doctor">
+            <option value="all">すべての訪問医</option>
+            <option value="とやま">とやまクリニック</option>
+            <option value="平野">平野医院</option>
+            <option value="城西">城西クリニック</option>
+            <option value="静岡ホーム">静岡ホームクリニック</option>
+            <option value="東静岡">東静岡クリニック</option>
+          </select>
+
+          <select class="filter-select" id="filter-food">
+            <option value="all">すべての食事形態</option>
+            <option value="米飯">米飯</option>
+            <option value="軟飯">軟飯</option>
+            <option value="全粥">全粥</option>
+            <option value="パン">パン</option>
+            <option value="ミキサー">ミキサー</option>
+            <option value="thick">とろみあり</option>
+            <option value="early">早出し対象</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- タブ1: 全体管理表 -->
+      <div class="tab-content-pane" id="tab-pane-all">
+        <div class="table-card">
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="room">部屋 ↕</th>
+                  <th class="sortable" data-sort="name">名前 ↕</th>
+                  <th class="sortable" data-sort="careLevel">介護度 ↕</th>
+                  <th class="sortable" data-sort="age">年齢 ↕</th>
+                  <th>生年月日</th>
+                  <th class="sortable" data-sort="entryDate">入居日 ↕</th>
+                  <th>訪問医</th>
+                  <th>口腔衛生</th>
+                  <th>福祉用具</th>
+                  <th>食事形態</th>
+                  <th style="text-align: center;">エアコン</th>
+                  <th class="action-col" style="text-align: right;">操作</th>
+                </tr>
+              </thead>
+              <tbody id="resident-table-body">
+                <!-- JavaScriptで動的生成 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- タブ2: 居室フロアマップ (2F/3F) -->
+      <div class="tab-content-pane" id="tab-pane-floor" style="display: none;">
+        <div class="floor-section">
+          <h2 class="floor-title">🏢 2階 居室配置図 (201 〜 225号室)</h2>
+          <div class="floor-grid" id="floor-2-grid">
+            <!-- 2F カード -->
+          </div>
+        </div>
+
+        <div class="floor-section">
+          <h2 class="floor-title">🏢 3階 居室配置図 (301 〜 325号室)</h2>
+          <div class="floor-grid" id="floor-3-grid">
+            <!-- 3F カード -->
+          </div>
+        </div>
+      </div>
+
+      <!-- タブ3: 食事・厨房指示一覧 -->
+      <div class="tab-content-pane" id="tab-pane-meal" style="display: none;">
+        <div id="meal-summary-grid" class="meal-summary-grid">
+          <!-- 食事統計サマリ -->
+        </div>
+
+        <div class="table-card">
+          <div style="padding: 16px 20px; border-bottom: 1px solid var(--earth-border); background-color: #f8faf9; display: flex; justify-content: space-between; align-items: center;">
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--earth-ink);">🍽️ 厨房・配膳指示テーブル</h3>
+            <button class="btn btn-outline btn-sm" onclick="window.print()">🖨️ 配膳チェック表を印刷</button>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>部屋</th>
+                  <th>名前</th>
+                  <th>主食形態</th>
+                  <th>副食形態</th>
+                  <th>とろみ</th>
+                  <th>配膳時間</th>
+                  <th>備考・特記事項</th>
+                </tr>
+              </thead>
+              <tbody id="meal-table-body">
+                <!-- 食事一覧 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- タブ4: 訪問医・福祉用具 -->
+      <div class="tab-content-pane" id="tab-pane-medical" style="display: none;">
+        <div class="doctor-grid" id="doctor-grid">
+          <!-- 訪問医別グループ -->
+        </div>
+      </div>
+
+      <!-- タブ5: 異動・退去履歴 -->
+      <div class="tab-content-pane" id="tab-pane-history" style="display: none;">
+        <div class="table-card">
+          <div style="padding: 16px 20px; border-bottom: 1px solid var(--earth-border); background-color: #f8faf9;">
+            <h3 style="font-size: 16px; font-weight: 800; color: var(--earth-ink);">🕒 入院・退去・逝去 記録ログ</h3>
+            <p style="font-size: 12px; color: var(--earth-muted); margin-top: 2px;">退去処理された入居者の履歴一覧です。</p>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>部屋番号</th>
+                  <th>氏名</th>
+                  <th>異動種別</th>
+                  <th>異動日</th>
+                  <th>介護度</th>
+                  <th>生年月日</th>
+                  <th>年齢</th>
+                  <th>訪問医</th>
+                  <th>備考</th>
+                </tr>
+              </thead>
+              <tbody id="history-table-body">
+                <!-- 異動履歴 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- タブ6: .xlsファイル読込・更新 -->
+      <div class="tab-content-pane" id="tab-pane-import" style="display: none;">
+        <div class="table-card" style="padding: 28px;">
+          <h2 style="font-family: 'Shippori Mincho', serif; font-size: 20px; font-weight: 700; margin-bottom: 8px; color: var(--earth-ink);">
+            📥 Excelファイル（.xls / .xlsx / .csv）からのデータ取り込み
+          </h2>
+          <p style="font-size: 13px; color: var(--earth-muted); margin-bottom: 24px;">
+            介護ソフトやExcel台帳から出力したファイルをドラッグ＆ドロップしてください。<br>
+            列名（部屋番号、氏名、介護度、訪問医、食事形態等）を自動判定し、差分を確認してから安全に取り込みます。
+          </p>
+
+          <div class="dropzone" id="excel-dropzone">
+            <div class="dropzone-icon">📁</div>
+            <div class="dropzone-title">ここに .xls / .xlsx / .csv ファイルをドロップ</div>
+            <div class="dropzone-desc">またはクリックしてファイルを選択</div>
+            <input type="file" id="excel-file-input" accept=".xls,.xlsx,.csv" style="display: none;">
+          </div>
+
+          <div style="background-color: #f8faf9; border-radius: 12px; padding: 18px 20px; border: 1px solid var(--earth-border); font-size: 13px;">
+            <strong style="color: var(--earth-ink); display: block; margin-bottom: 6px;">💡 取り込み可能なデータ項目例:</strong>
+            <ul style="margin-left: 20px; line-height: 1.7; color: var(--earth-muted);">
+              <li><strong>必須/キー項目:</strong> 「部屋番号」（または「居室」）、「氏名」（または「名前」）</li>
+              <li><strong>基本項目:</strong> 「入居日」、「介護度」（要介護1〜5）、「生年月日」、「年齢」</li>
+              <li><strong>ケア項目:</strong> 「訪問医」（クリニック名）、「口腔衛生」（歯科）、「福祉用具」</li>
+              <li><strong>食事項目:</strong> 「ごはん」（主食）、「おかず」（副食）、「とろみ」、「早出し」</li>
+              <li>※ 列の並び順が異なっていても自動認識されます。</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- 差分確認モーダル -->
+  <div class="modal-overlay" id="diff-preview-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>📊 ファイル取り込み確認 ＆ 差分プレビュー</h2>
+        <button class="modal-close" onclick="window.EarthApp.closeModal(document.getElementById('diff-preview-modal'))">&times;</button>
+      </div>
+      <div class="modal-body" id="diff-modal-body">
+        <!-- 差分テーブルが動的に挿入されます -->
+      </div>
+      <div class="modal-footer">
+        <div style="margin-right: auto; display: flex; align-items: center; gap: 14px; font-size: 13px;">
+          <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            <input type="radio" name="import-mode" value="merge" checked>
+            <strong>差分マージ</strong> (変更箇所のみ更新)
+          </label>
+          <label style="display: flex; align-items: center; gap: 4px; cursor: pointer;">
+            <input type="radio" name="import-mode" value="overwrite">
+            <strong>全件上書き</strong> (ファイル内容で完全置換)
+          </label>
+        </div>
+        <button class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('diff-preview-modal'))">キャンセル</button>
+        <button class="btn btn-primary" id="btn-apply-import">確定して反映する</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 入居者編集・新規登録モーダル -->
+  <div class="modal-overlay" id="resident-edit-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 id="edit-modal-title">入居者情報編集</h2>
+        <button class="modal-close" onclick="window.EarthApp.closeModal(document.getElementById('resident-edit-modal'))">&times;</button>
+      </div>
+      <form id="resident-form">
+        <input type="hidden" name="id">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label class="form-label">部屋番号 *</label>
+              <input type="text" name="room" class="form-input" required placeholder="例: 201">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">氏名 (空欄で空室)</label>
+              <input type="text" name="name" class="form-input" placeholder="例: 熊木　勝">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">要介護度</label>
+              <select name="careLevel" class="form-input">
+                <option value="">-- 選択 --</option>
+                <option value="1">要介護 1</option>
+                <option value="2">要介護 2</option>
+                <option value="3">要介護 3</option>
+                <option value="4">要介護 4</option>
+                <option value="5">要介護 5</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">年齢</label>
+              <input type="number" name="age" class="form-input" placeholder="例: 85">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">生年月日</label>
+              <input type="text" name="birthday" class="form-input" placeholder="例: S24/06/08">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">入居日</label>
+              <input type="text" name="entryDate" class="form-input" placeholder="例: 2026/07/14">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">訪問医 (クリニック)</label>
+              <input type="text" name="doctor" class="form-input" placeholder="例: 井上Dr.　城西">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">口腔衛生 (歯科)</label>
+              <input type="text" name="dental" class="form-input" placeholder="例: 小嶋デンタル">
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">福祉用具</label>
+              <input type="text" name="equipment" class="form-input" placeholder="例: 施 車椅子, 購 歩行器">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">ごはん (主食)</label>
+              <input type="text" name="foodMain" class="form-input" placeholder="例: 米飯, 軟飯, 全粥, パン">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">おかず (副食)</label>
+              <input type="text" name="foodSide" class="form-input" placeholder="例: 普通, 一口, きざみ">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">とろみ</label>
+              <input type="text" name="foodThick" class="form-input" placeholder="例: あり, 無し">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">エアコン</label>
+              <select name="airConditioner" class="form-input">
+                <option value="〇">〇 (利用あり)</option>
+                <option value="×">× (利用なし)</option>
+              </select>
+            </div>
+
+            <div class="form-group" style="justify-content: center;">
+              <label class="form-label">配膳オプション</label>
+              <label style="display: flex; align-items: center; gap: 8px; margin-top: 6px; cursor: pointer; font-size: 14px; font-weight: 700;">
+                <input type="checkbox" name="earlyFood" style="width: 18px; height: 18px;"> 早出し対象
+              </label>
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label">備考・特記事項</label>
+              <textarea name="note" class="form-input" rows="2" placeholder="注意事項や個別ケア事項"></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('resident-edit-modal'))">キャンセル</button>
+          <button type="submit" class="btn btn-primary">保存する</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 退去・異動モーダル -->
+  <div class="modal-overlay" id="move-out-modal">
+    <div class="modal-card" style="width: min(550px, 96vw);">
+      <div class="modal-header">
+        <h2>🚪 退去・異動の記録</h2>
+        <button class="modal-close" onclick="window.EarthApp.closeModal(document.getElementById('move-out-modal'))">&times;</button>
+      </div>
+      <form id="move-out-form">
+        <div class="modal-body">
+          <div style="background-color: #fef2f2; border: 1px solid #fecaca; border-radius: 10px; padding: 14px; margin-bottom: 16px; font-size: 13px; color: #991b1b;">
+            <span id="move-out-target-room" style="font-weight: bold;"></span> 
+            <strong id="move-out-target-name" style="font-size: 15px; margin-left: 6px;"></strong> 様の退去・異動処理を行います。<br>
+            処理を実行すると、この居室は自動的に「空室」となり、履歴ログに保存されます。
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label">異動種別 *</label>
+            <select name="eventType" class="form-input" required>
+              <option value="逝去">逝去</option>
+              <option value="入院">入院</option>
+              <option value="特養">特養 (特別養護老人ホーム)</option>
+              <option value="GH">GH (グループホーム)</option>
+              <option value="サ高住">サ高住</option>
+              <option value="在宅">在宅復帰</option>
+              <option value="他施設">他施設移動</option>
+            </select>
+          </div>
+
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label class="form-label">異動日 *</label>
+            <input type="text" name="eventDate" class="form-input" required placeholder="YYYY/MM/DD または M/D">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">備考・詳細</label>
+            <textarea name="note" class="form-input" rows="2" placeholder="転出先病院名や詳細"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('move-out-modal'))">キャンセル</button>
+          <button type="submit" class="btn btn-danger">退去を記録して空室化</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- トースト通知コンテナ -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- JavaScriptモジュール読み込み -->
+  <script src="assets/js/xlsx.full.min.js"></script>
+  <script src="assets/js/data-store.js"></script>
+  <script src="assets/js/excel-importer.js"></script>
+  <script src="assets/js/excel-exporter.js"></script>
+  <script src="assets/js/app.js"></script>
+
+  <script>
+    // 印刷日時
+    document.getElementById('print-date').textContent = new Date().toLocaleString('ja-JP');
+  </script>
+</body>
+</html>

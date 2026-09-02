@@ -1,0 +1,84 @@
+<script type="text/babel">
+  // ==========================================
+  // アース公式 スプラッシュ起動画面コンポーネント
+  // ==========================================
+  window.SplashScreen = ({ isVisible, subtitle = "介護記録・申し送りシステム" }) => {
+    const { useState, useEffect } = React;
+    const [shouldRender, setShouldRender] = useState(isVisible);
+    const [isFadingOut, setIsFadingOut] = useState(false);
+
+    useEffect(() => {
+      if (!isVisible && shouldRender) {
+        setIsFadingOut(true);
+        const timer = setTimeout(() => {
+          setShouldRender(false);
+        }, 600);
+        return () => clearTimeout(timer);
+      } else if (isVisible) {
+        setShouldRender(true);
+        setIsFadingOut(false);
+      }
+    }, [isVisible, shouldRender]);
+
+    if (!shouldRender) return null;
+
+    const symbolLogo = window.EARTH_LOGOS?.symbol;
+    const horizontalLogo = window.EARTH_LOGOS?.horizontal;
+
+    return (
+      <div
+        role="dialog"
+        aria-label="スプラッシュ起動画面"
+        className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center bg-gradient-to-b from-[#f7f2e7] via-[#eef6ec] to-[#e2f0df] px-6 select-none transition-opacity duration-600 ease-out ${isFadingOut ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}
+      >
+        <div className="flex flex-col items-center max-w-xs w-full text-center animate-splash-in">
+          {/* 中央公式シンボルロゴ（地球と若葉マーク） */}
+          <div className="relative mb-6">
+            <div className="absolute inset-0 rounded-full bg-emerald-200/50 blur-2xl transform scale-125 animate-pulse"></div>
+            {symbolLogo ? (
+              <img
+                src={symbolLogo}
+                alt="Earth ロゴマーク"
+                className="relative w-36 h-auto drop-shadow-md animate-splash-float"
+              />
+            ) : (
+              <div className="auth-brand-mark w-24 h-24 text-4xl shadow-earth">E</div>
+            )}
+          </div>
+
+          {/* 横型公式ロゴ または 社名 */}
+          <div className="mb-2 flex items-center justify-center">
+            {horizontalLogo ? (
+              <img
+                src={horizontalLogo}
+                alt="株式会社アース"
+                className="h-8 md:h-9 w-auto mx-auto object-contain drop-shadow-sm"
+              />
+            ) : (
+              <div className="text-xl font-bold font-brand-title text-earth-ink tracking-wider">
+                株式会社アース
+              </div>
+            )}
+          </div>
+
+          {/* サブタイトル */}
+          <p className="text-xs font-bold text-earth-muted tracking-widest font-brand-title mt-1 mb-6">
+            {subtitle}
+          </p>
+
+          {/* 繊細なプログレス・ローディングバー */}
+          <div className="w-36 h-1.5 bg-earth-border/40 rounded-full overflow-hidden relative">
+            <div className="h-full bg-gradient-to-r from-earth-green to-earth-gold rounded-full w-full animate-splash-progress"></div>
+          </div>
+          <p className="text-[11px] font-bold text-earth-green/80 font-brand-num mt-2 tracking-wider">
+            PREPARING...
+          </p>
+        </div>
+
+        <div className="absolute bottom-6 text-[10px] font-bold text-earth-muted/70 tracking-widest font-brand-num">
+          EARTH CARE GROUP
+        </div>
+      </div>
+    );
+  };
+</script>
