@@ -265,8 +265,12 @@
       if (headerRowIndex === -1) {
         // 見つからなければ 0 行目をヘッダーと仮定
         headerRowIndex = 0;
-        colMap = this.mapHeaderColumns(rows[0]);
+        colMap = this.mapHeaderColumns(rows[0] || []);
       }
+
+      // ヘッダー名が未定義の場合の標準位置フォールバック（A列:部屋, B列:名前, K列:入居日）
+      if (colMap.room === undefined) colMap.room = 0;
+      if (colMap.name === undefined) colMap.name = 1;
 
       const results = [];
 
@@ -297,12 +301,44 @@
         // フロアの自動分類（部屋番号、フロア指定、シート名から自動判別）
         const floor = determineFloor(rawRoomStr, rawFloor, sheetName);
 
+        // 入居日 (entryDate) の徹底抽出（K列優先フォールバック対応）
+        let extractedEntryDate = '';
+        // 1. ヘッダー名マッピングからの取得
+        if (colMap.entryDate !== undefined && row[colMap.entryDate] !== undefined && row[colMap.entryDate] !== '') {
+          extractedEntryDate = normalizeDateStr(row[colMap.entryDate]);
+        }
+        // 2. ワイズマン標準形式：K列（列インデックス10）からの優先抽出
+        if (!extractedEntryDate && row.length > 10 && row[10] !== undefined && row[10] !== '') {
+          const kDate = normalizeDateStr(row[10]);
+          if (kDate) extractedEntryDate = kDate;
+        }
+        // 3. C列（列インデックス2）または他列からの日付フォールバック
+        if (!extractedEntryDate) {
+          for (let cIdx = 0; cIdx < row.length; cIdx++) {
+            if (cIdx === colMap.birthday || cIdx === colMap.room || cIdx === colMap.name || cIdx === colMap.age) continue;
+            const cVal = row[cIdx];
+            if (cVal !== undefined && cVal !== '') {
+              const numVal = Number(cVal);
+              if (!isNaN(numVal) && numVal >= 25000 && numVal <= 75000) {
+                extractedEntryDate = excelSerialToDateStr(numVal);
+                if (extractedEntryDate) break;
+              } else {
+                const testDate = normalizeDateStr(cVal);
+                if (testDate && /^\d{4}\/\d{2}\/\d{2}$/.test(testDate)) {
+                  extractedEntryDate = testDate;
+                  break;
+                }
+              }
+            }
+          }
+        }
+
         const resObj = {
           id: `res_${roomNum}`,
           room: String(roomNum),
           floor: floor,
           name: rawNameStr,
-          entryDate: colMap.entryDate !== undefined ? normalizeDateStr(row[colMap.entryDate]) : '',
+          entryDate: extractedEntryDate,
           careLevel: colMap.careLevel !== undefined ? normalizeCareLevel(row[colMap.careLevel]) : '',
           birthday: colMap.birthday !== undefined ? normalizeDateStr(row[colMap.birthday]) : '',
           age: colMap.age !== undefined && row[colMap.age] !== '' ? parseInt(row[colMap.age], 10) : null,
