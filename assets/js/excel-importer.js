@@ -11,7 +11,11 @@
     room: ['居室コード', '居室名', '居室番号', '居室', '部屋番号', '部屋', '号室', '室番', 'Room', 'room'],
     floor: ['フロア', '階数', '階', '階層', 'Floor', 'floor', 'F'],
     name: ['利用者氏名', '利用者名', '入所者氏名', '入所者名', '入居者氏名', '入居者名', '患者名', '氏名', '名前', 'お客様名', 'Name', 'name'],
-    entryDate: ['入所年月日', '入所日', '入居年月日', '入居日', '利用開始年月日', '利用開始日', '契約日', '契約開始日', 'EntryDate'],
+    entryDate: [
+      '入所年月日', '入所日', '入居年月日', '入居日', '利用開始年月日', '利用開始日',
+      '契約年月日', '契約日', '契約開始日', '入所開始日', '入居開始日', '利用開始',
+      '入居', '入所', '契約', '開始日', '利用期間', '入居期間', 'EntryDate', 'AdmissionDate', 'StartDate'
+    ],
     careLevel: ['要介護状態区分', '介護度区分', '介護度', '要介護度', '要介護', '認定結果', 'CareLevel'],
     birthday: ['生年月日', '生年月', '誕生日', 'Birthday'],
     age: ['満年齢', '実年齢', '年齢', 'Age', 'age'],
@@ -78,27 +82,76 @@
 
   // Excelの日付シリアル値を YYYY/MM/DD に変換
   function excelSerialToDateStr(serial) {
-    if (typeof serial === 'number') {
-      const utc_days = Math.floor(serial - 25569);
+    const num = Number(serial);
+    if (!isNaN(num) && num > 0) {
+      // Excelシリアル値（1900年基準、うるう年バグ調整）
+      const utc_days = Math.floor(num - 25569);
       const utc_value = utc_days * 86400;
       const date_info = new Date(utc_value * 1000);
-      const y = date_info.getUTCFullYear();
-      const m = String(date_info.getUTCMonth() + 1).padStart(2, '0');
-      const d = String(date_info.getUTCDate()).padStart(2, '0');
-      return `${y}/${m}/${d}`;
+      if (!isNaN(date_info.getTime())) {
+        const y = date_info.getUTCFullYear();
+        const m = String(date_info.getUTCMonth() + 1).padStart(2, '0');
+        const d = String(date_info.getUTCDate()).padStart(2, '0');
+        return `${y}/${m}/${d}`;
+      }
     }
     return String(serial || '');
   }
 
-  // 和暦（S24/06/08, 昭和24年6月8日, R08/03/01 等）や日付文字列の正規化
+  // 和暦（S24/06/08, 昭和24年6月8日, R08/03/01 等）や日付文字列、Excelシリアル値の完全正規化
   function normalizeDateStr(val) {
-    if (!val) return '';
-    if (typeof val === 'number') return excelSerialToDateStr(val);
-    let str = toHalfWidth(val);
+    if (val === null || val === undefined || val === '') return '';
     
-    // 「昭和24年6月8日」等の漢字表記を「S24/06/08」形式または「1949/06/08」に整形
+    // 1. 数値型またはシリアル値数値文字列（例: 46217, "46217.0"）の判定
+    const numVal = Number(val);
+    if (!isNaN(numVal) && numVal >= 10000 && numVal <= 80000) {
+      return excelSerialToDateStr(numVal);
+    }
+
+    let str = toHalfWidth(val);
+
+    // 2. 西暦「YYYY/M/D」や「YYYY-M-D」「YYYY.M.D」「YYYY年M月D日」の整形
+    const seirekiMatch = str.match(/^(\d{4})[\/\-\.年](\d{1,2})[\/\-\.月](\d{1,2})日?$/);
+    if (seirekiMatch) {
+      const y = seirekiMatch[1];
+      const m = String(seirekiMatch[2]).padStart(2, '0');
+      const d = String(seirekiMatch[3]).padStart(2, '0');
+      return `${y}/${m}/${d}`;
+    }
+
+    // 3. 8桁数値（例: "20260714"）
+    if (/^\d{8}$/.test(str)) {
+      return `${str.substring(0, 4)}/${str.substring(4, 6)}/${str.substring(6, 8)}`;
+    }
+
+    // 4. 和暦表記（令和、平成、昭和、大正、明治、または R, H, S, T, M）
+    // 漢字表記および「元年」を置換
+    str = str.replace(/元年/g, '1年').replace(/元[\/\.\-]/g, '1/');
     str = str.replace(/明治/g, 'M').replace(/大正/g, 'T').replace(/昭和/g, 'S').replace(/平成/g, 'H').replace(/令和/g, 'R');
     str = str.replace(/年|\./g, '/').replace(/月/g, '/').replace(/日/g, '').replace(/\s+/g, '');
+
+    // "R8/7/14" や "R1/11/1" などの形式を "2026/07/14" 等に整形
+    const warekiMatch = str.match(/^([MTSHR])(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{1,2})$/i);
+    if (warekiMatch) {
+      const g = warekiMatch[1].toUpperCase();
+      const gy = parseInt(warekiMatch[2], 10);
+      const m = String(warekiMatch[3]).padStart(2, '0');
+      const d = String(warekiMatch[4]).padStart(2, '0');
+
+      // 西暦計算（入居日の場合は西暦 YYYY/MM/DD に統一すると表や検索で最も使いやすい）
+      let seirekiYear = null;
+      if (g === 'R') seirekiYear = 2018 + gy;
+      else if (g === 'H') seirekiYear = 1988 + gy;
+      else if (g === 'S') seirekiYear = 1925 + gy;
+      else if (g === 'T') seirekiYear = 1911 + gy;
+      else if (g === 'M') seirekiYear = 1867 + gy;
+
+      if (seirekiYear) {
+        return `${seirekiYear}/${m}/${d}`;
+      }
+      return `${g}${String(gy).padStart(2, '0')}/${m}/${d}`;
+    }
+
     return str;
   }
 
@@ -272,16 +325,17 @@
     }
 
     /**
-     * ヘッダー文字列配列から各キーの列インデックスをマッピング
+     * ヘッダー文字列配列から各キーの列インデックスをマッピング（空白除去＆表記揺れ許容）
      */
     mapHeaderColumns(headerRow) {
       const map = {};
       headerRow.forEach((cell, idx) => {
-        const text = String(cell || '').trim();
-        if (!text) return;
+        const rawText = String(cell || '').trim();
+        if (!rawText) return;
+        const cleanText = toHalfWidth(rawText).replace(/\s+/g, '');
 
         for (const [key, aliases] of Object.entries(COLUMN_ALIASES)) {
-          if (aliases.some(alias => text.includes(alias))) {
+          if (aliases.some(alias => cleanText.includes(alias.replace(/\s+/g, '')) || rawText.includes(alias))) {
             if (map[key] === undefined) {
               map[key] = idx;
             }
@@ -323,6 +377,7 @@
             // 変更点があるか比較
             const changes = [];
             if (curr.name !== newRes.name) changes.push(`氏名: ${curr.name} → ${newRes.name}`);
+            if (curr.entryDate !== newRes.entryDate && newRes.entryDate) changes.push(`入居日: ${curr.entryDate || '-'} → ${newRes.entryDate}`);
             if (curr.careLevel !== newRes.careLevel) changes.push(`介護度: ${curr.careLevel || '-'} → ${newRes.careLevel || '-'}`);
             if (curr.doctor !== newRes.doctor) changes.push(`訪問医: ${curr.doctor || '-'} → ${newRes.doctor || '-'}`);
             if (curr.foodMain !== newRes.foodMain || curr.foodSide !== newRes.foodSide) changes.push(`食事: ${curr.foodMain}/${curr.foodSide} → ${newRes.foodMain}/${newRes.foodSide}`);
