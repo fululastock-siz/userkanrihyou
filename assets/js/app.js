@@ -451,18 +451,6 @@
     }).join('');
   }
 
-      return `
-        <tr class="${isEmpty ? 'is-empty-room' : ''}">
-          ${cellsHtml}
-          <td class="action-col" style="text-align: right; white-space: nowrap;">
-            <button class="btn btn-outline btn-sm" onclick="window.EarthApp.openEditModal('${r.id}')" title="ダイアログで詳細編集">詳細</button>
-            ${!isEmpty ? `<button class="btn btn-danger btn-sm" onclick="window.EarthApp.openMoveOutModal('${r.id}')" title="退去・異動処理">退去</button>` : ''}
-          </td>
-        </tr>
-      `;
-    }).join('');
-  }
-
   /**
    * フロア切り替え
    */
