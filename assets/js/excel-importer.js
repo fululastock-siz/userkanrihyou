@@ -17,6 +17,12 @@
       '入居', '入所', '契約', '開始日', '利用期間', '入居期間', 'EntryDate', 'AdmissionDate', 'StartDate'
     ],
     careLevel: ['要介護状態区分', '介護度区分', '介護度', '要介護度', '要介護', '認定結果', 'CareLevel'],
+    copay: ['負担割合', '負担割合証', '利用者負担割合', '負担割', '自己負担割合', 'Copay'],
+    insNumber: ['被保険者番号', '介護保険被保険者番号', '被保番', '被保険者No', '受給者番号', 'InsuredNumber', 'InsNumber'],
+    insurerName: ['保険者名', '保険者市区町村', '自治体名', '保険者自治体', '市区町村', 'Insurer'],
+    certStartDate: ['認定有効期間(自)', '認定有効期間（自）', '認定有効期間開始', '認定開始日', '認定開始年月日', '有効期間(自)', '有効期間（自）', '有効開始日', '認定開始', 'CertStartDate'],
+    certEndDate: ['認定有効期間(至)', '認定有効期間（至）', '認定有効期間終了', '認定有効期限', '有効期間(至)', '有効期間（至）', '認定満了日', '満了日', '認定終了日', '認定終了年月日', '有効期限', '認定終了', 'CertEndDate'],
+    certStatus: ['更新申請状況', '申請状況', '更新状況', '認定状況', '更新申請', '申請ステータス', 'CertStatus'],
     birthday: ['生年月日', '生年月', '誕生日', 'Birthday'],
     age: ['満年齢', '実年齢', '年齢', 'Age', 'age'],
     doctor: ['主治医氏名', '主治医', '医療機関名', '医療機関', '訪問医', '往診医', 'クリニック', 'Doctor'],
@@ -169,6 +175,16 @@
     if (str.includes('自立') || str.includes('非該当')) return '自立';
     const num = parseInt(str.replace(/[^0-9]/g, ''), 10);
     return !isNaN(num) && num >= 1 && num <= 5 ? `介${num}` : str;
+  }
+
+  // 負担割合の正規化 (「1割」「2割」「3割」)
+  function normalizeCopay(val) {
+    if (val === null || val === undefined || val === '') return '1割';
+    const str = toHalfWidth(val);
+    if (str.includes('3') || str.includes('30%') || str.includes('3割')) return '3割';
+    if (str.includes('2') || str.includes('20%') || str.includes('2割')) return '2割';
+    if (str.includes('1') || str.includes('10%') || str.includes('1割')) return '1割';
+    return str || '1割';
   }
 
   class ExcelImporter {
@@ -340,6 +356,12 @@
           name: rawNameStr,
           entryDate: extractedEntryDate,
           careLevel: colMap.careLevel !== undefined ? normalizeCareLevel(row[colMap.careLevel]) : '',
+          copay: colMap.copay !== undefined && row[colMap.copay] !== '' ? normalizeCopay(row[colMap.copay]) : '1割',
+          insNumber: colMap.insNumber !== undefined ? String(row[colMap.insNumber] || '').trim() : '',
+          insurerName: colMap.insurerName !== undefined ? String(row[colMap.insurerName] || '').trim() : '静岡市',
+          certStartDate: colMap.certStartDate !== undefined ? normalizeDateStr(row[colMap.certStartDate]) : '',
+          certEndDate: colMap.certEndDate !== undefined ? normalizeDateStr(row[colMap.certEndDate]) : '',
+          certStatus: colMap.certStatus !== undefined ? String(row[colMap.certStatus] || '').trim() : '',
           birthday: colMap.birthday !== undefined ? normalizeDateStr(row[colMap.birthday]) : '',
           age: colMap.age !== undefined && row[colMap.age] !== '' ? parseInt(row[colMap.age], 10) : null,
           doctor: colMap.doctor !== undefined ? String(row[colMap.doctor] || '').trim() : '',
@@ -365,17 +387,40 @@
      */
     mapHeaderColumns(headerRow) {
       const map = {};
+      if (!Array.isArray(headerRow)) return map;
+
+      // 各セルに対して最も合致度の高いキーを判定
       headerRow.forEach((cell, idx) => {
         const rawText = String(cell || '').trim();
         if (!rawText) return;
         const cleanText = toHalfWidth(rawText).replace(/\s+/g, '');
 
+        let bestKey = null;
+        let maxScore = 0;
+
         for (const [key, aliases] of Object.entries(COLUMN_ALIASES)) {
-          if (aliases.some(alias => cleanText.includes(alias.replace(/\s+/g, '')) || rawText.includes(alias))) {
-            if (map[key] === undefined) {
-              map[key] = idx;
+          for (const alias of aliases) {
+            const cleanAlias = toHalfWidth(alias).replace(/\s+/g, '');
+            if (cleanText === cleanAlias) {
+              // 完全一致
+              const score = 1000 + cleanAlias.length;
+              if (score > maxScore) {
+                maxScore = score;
+                bestKey = key;
+              }
+            } else if (cleanText.includes(cleanAlias) || rawText.includes(alias)) {
+              // 部分一致（一致したキーワードが長いほど高スコア）
+              const score = cleanAlias.length;
+              if (score > maxScore) {
+                maxScore = score;
+                bestKey = key;
+              }
             }
           }
+        }
+
+        if (bestKey && map[bestKey] === undefined) {
+          map[bestKey] = idx;
         }
       });
       return map;

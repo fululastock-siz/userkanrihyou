@@ -80,6 +80,9 @@
         <button class="nav-tab-btn active" data-tab="all">
           📋 全体管理表
         </button>
+        <button class="nav-tab-btn" data-tab="caremanager" style="font-weight: 700; color: #1e40af; background: #eff6ff; border-color: #bfdbfe;">
+          👔 ケアマネ・相談員
+        </button>
         <button class="nav-tab-btn" data-tab="floor">
           🏢 居室フロアマップ (2F/3F)
         </button>
@@ -236,6 +239,87 @@
                 <!-- JavaScriptで動的生成 -->
               </thead>
               <tbody id="resident-table-body">
+                <!-- JavaScriptで動的生成 -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- タブ: ケアマネ・相談員モード（介護保険・認定期限アラート） -->
+      <div class="tab-content-pane" id="tab-pane-caremanager" style="display: none;">
+        <!-- 🚨 認定有効期限アラートサマリー -->
+        <section class="care-alert-summary-grid">
+          <div class="care-alert-card card-expired" onclick="window.EarthApp.filterCareManagerAlert('expired')">
+            <div class="care-alert-icon">🔴</div>
+            <div class="care-alert-content">
+              <div class="care-alert-title">認定期限切れ</div>
+              <div class="care-alert-value" id="cm-stat-expired">0 <span class="care-alert-unit">名</span></div>
+              <div class="care-alert-sub">直ちに更新申請が必要</div>
+            </div>
+          </div>
+
+          <div class="care-alert-card card-urgent" onclick="window.EarthApp.filterCareManagerAlert('urgent')">
+            <div class="care-alert-icon">🟠</div>
+            <div class="care-alert-content">
+              <div class="care-alert-title">30日以内 (要申請)</div>
+              <div class="care-alert-value" id="cm-stat-urgent">0 <span class="care-alert-unit">名</span></div>
+              <div class="care-alert-sub">更新手続き・申請中確認</div>
+            </div>
+          </div>
+
+          <div class="care-alert-card card-warning" onclick="window.EarthApp.filterCareManagerAlert('warning')">
+            <div class="care-alert-icon">🟡</div>
+            <div class="care-alert-content">
+              <div class="care-alert-title">60日以内 (申請準備)</div>
+              <div class="care-alert-value" id="cm-stat-warning">0 <span class="care-alert-unit">名</span></div>
+              <div class="care-alert-sub">2ヶ月以内に満了</div>
+            </div>
+          </div>
+
+          <div class="care-alert-card card-ok" onclick="window.EarthApp.filterCareManagerAlert('ok')">
+            <div class="care-alert-icon">🟢</div>
+            <div class="care-alert-content">
+              <div class="care-alert-title">認定有効期間内</div>
+              <div class="care-alert-value" id="cm-stat-ok">0 <span class="care-alert-unit">名</span></div>
+              <div class="care-alert-sub">正常（余裕あり）</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ケアマネ・相談員用管理テーブル -->
+        <div class="table-card" style="margin-top: 16px;">
+          <div style="padding: 12px 20px; background: #f0f7ff; border-bottom: 1px solid #bfdbfe; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 13.5px; font-weight: 700; color: #1e40af;">
+              👔 ケアマネジャー・生活相談員専用 保険・認定管理表（ワイズマン連動）
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span id="cm-current-filter-badge" style="font-size: 12px; padding: 4px 12px; border-radius: 6px; background: #ffffff; border: 1px solid #bfdbfe; color: #1e40af; font-weight: bold;">
+                全件表示中
+              </span>
+              <button type="button" class="btn btn-outline btn-sm" onclick="window.EarthApp.filterCareManagerAlert('all')" style="font-size: 12px;">
+                🔄 絞り込み解除
+              </button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th class="sticky-col-room" style="width: 80px;">部屋</th>
+                  <th class="sticky-col-name" style="width: 140px;">名前 (フルネーム)</th>
+                  <th style="width: 95px;">介護度</th>
+                  <th style="width: 95px;">負担割合</th>
+                  <th style="width: 135px;">被保険者番号</th>
+                  <th style="width: 110px;">保険者 (自治体)</th>
+                  <th style="width: 110px;">認定開始日</th>
+                  <th style="width: 110px;">認定満了日</th>
+                  <th style="width: 165px;">⚠️ 認定期限アラート</th>
+                  <th style="width: 140px;">更新申請状況</th>
+                  <th style="width: 140px;">主治医 (意見書)</th>
+                </tr>
+              </thead>
+              <tbody id="caremanager-table-body">
                 <!-- JavaScriptで動的生成 -->
               </tbody>
             </table>
@@ -504,6 +588,47 @@
               </label>
             </div>
 
+            <div class="form-group full-width" style="margin-top: 10px; padding: 12px 14px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 8px;">
+              <strong style="color: #1e40af; font-size: 13px; display: block; margin-bottom: 8px;">👔 介護保険・認定管理（ケアマネ・相談員情報）:</strong>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+                <div>
+                  <label class="form-label" style="font-size: 11px;">負担割合</label>
+                  <select name="copay" class="form-input" style="font-size: 12px;">
+                    <option value="1割">1割</option>
+                    <option value="2割">2割</option>
+                    <option value="3割">3割</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 11px;">被保険者番号</label>
+                  <input type="text" name="insNumber" class="form-input" style="font-size: 12px;" placeholder="例: 0012345678">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 11px;">保険者 (自治体)</label>
+                  <input type="text" name="insurerName" class="form-input" style="font-size: 12px;" placeholder="例: 静岡市">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 11px;">認定開始日</label>
+                  <input type="text" name="certStartDate" class="form-input" style="font-size: 12px;" placeholder="YYYY/MM/DD">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 11px;">認定満了日 (期限)</label>
+                  <input type="text" name="certEndDate" class="form-input" style="font-size: 12px; font-weight: bold;" placeholder="YYYY/MM/DD">
+                </div>
+                <div>
+                  <label class="form-label" style="font-size: 11px;">更新申請状況</label>
+                  <select name="certStatus" class="form-input" style="font-size: 12px;">
+                    <option value="有効">有効</option>
+                    <option value="更新申請中">更新申請中</option>
+                    <option value="認定調査済">認定調査済</option>
+                    <option value="結果待ち">結果待ち</option>
+                    <option value="意見書作成中">意見書作成中</option>
+                    <option value="区分変更申請中">区分変更申請中</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
             <div class="form-group full-width">
               <label class="form-label">備考・特記事項</label>
               <textarea name="note" class="form-input" rows="2" placeholder="注意事項や個別ケア事項"></textarea>
@@ -744,11 +869,11 @@
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_7"></script>
-  <script src="assets/js/excel-importer.js?v=20260902_7"></script>
-  <script src="assets/js/excel-exporter.js?v=20260902_7"></script>
-  <script src="assets/js/google-sheet-sync.js?v=20260902_7"></script>
-  <script src="assets/js/app.js?v=20260902_7"></script>
+  <script src="assets/js/data-store.js?v=20260902_8"></script>
+  <script src="assets/js/excel-importer.js?v=20260902_8"></script>
+  <script src="assets/js/excel-exporter.js?v=20260902_8"></script>
+  <script src="assets/js/google-sheet-sync.js?v=20260902_8"></script>
+  <script src="assets/js/app.js?v=20260902_8"></script>
 
   <script>
     // 印刷日時

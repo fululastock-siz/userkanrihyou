@@ -16,7 +16,8 @@
     filterFood: 'all',
     sortField: 'room',
     sortAsc: true,
-    currentFloorView: 'all' // 'all', '2', '3', etc.
+    currentFloorView: 'all', // 'all', '2', '3', etc.
+    careManagerAlertFilter: 'all' // 'all', 'expired', 'urgent', 'warning', 'ok'
   };
 
   // DOM参照
@@ -32,6 +33,15 @@
     statAvgAge: document.getElementById('stat-avg-age'),
     statThickCount: document.getElementById('stat-thick-count'),
     statEarlyCount: document.getElementById('stat-early-count'),
+
+    // ケアマネ・相談員モード用
+    tabPaneCaremanager: document.getElementById('tab-pane-caremanager'),
+    caremanagerTableBody: document.getElementById('caremanager-table-body'),
+    cmStatExpired: document.getElementById('cm-stat-expired'),
+    cmStatUrgent: document.getElementById('cm-stat-urgent'),
+    cmStatWarning: document.getElementById('cm-stat-warning'),
+    cmStatOk: document.getElementById('cm-stat-ok'),
+    cmCurrentFilterBadge: document.getElementById('cm-current-filter-badge'),
 
     // フィルター
     searchInput: document.getElementById('search-input'),
@@ -738,11 +748,179 @@
   }
 
   /**
+   * ケアマネ・生活相談員モードの描画（認定期限アラート＆専用テーブル）
+   */
+  function renderCareManagerView() {
+    const tbody = elements.caremanagerTableBody;
+    if (!tbody) return;
+
+    // 1. サマリーの集計と更新
+    const cmSummary = window.DataStore.getCareManagerSummary();
+    if (elements.cmStatExpired) elements.cmStatExpired.innerHTML = `${cmSummary.expiredCount} <span class="care-alert-unit">名</span>`;
+    if (elements.cmStatUrgent) elements.cmStatUrgent.innerHTML = `${cmSummary.urgentCount} <span class="care-alert-unit">名</span>`;
+    if (elements.cmStatWarning) elements.cmStatWarning.innerHTML = `${cmSummary.warningCount} <span class="care-alert-unit">名</span>`;
+    if (elements.cmStatOk) elements.cmStatOk.innerHTML = `${cmSummary.okCount} <span class="care-alert-unit">名</span>`;
+
+    // 2. フィルター状態バッジの更新
+    if (elements.cmCurrentFilterBadge) {
+      if (state.careManagerAlertFilter === 'expired') {
+        elements.cmCurrentFilterBadge.innerHTML = '🔴 認定期限切れのみ表示中';
+        elements.cmCurrentFilterBadge.style.color = '#b91c1c';
+      } else if (state.careManagerAlertFilter === 'urgent') {
+        elements.cmCurrentFilterBadge.innerHTML = '🟠 30日以内(要申請)のみ表示中';
+        elements.cmCurrentFilterBadge.style.color = '#c2410c';
+      } else if (state.careManagerAlertFilter === 'warning') {
+        elements.cmCurrentFilterBadge.innerHTML = '🟡 60日以内(申請準備)のみ表示中';
+        elements.cmCurrentFilterBadge.style.color = '#854d0e';
+      } else if (state.careManagerAlertFilter === 'ok') {
+        elements.cmCurrentFilterBadge.innerHTML = '🟢 認定有効内のみ表示中';
+        elements.cmCurrentFilterBadge.style.color = '#15803d';
+      } else {
+        elements.cmCurrentFilterBadge.innerHTML = '全件表示中';
+        elements.cmCurrentFilterBadge.style.color = '#1e40af';
+      }
+    }
+
+    // 3. 入居者リストのフィルタリング
+    let list = getFilteredResidents();
+
+    // ケアマネ用アラートフィルターの適用
+    if (state.careManagerAlertFilter !== 'all') {
+      list = list.filter(r => {
+        if (!r.name) return false;
+        const alertInfo = window.DataStore.getCertificationAlertInfo(r.certEndDate);
+        return alertInfo.level === state.careManagerAlertFilter;
+      });
+    }
+
+    if (list.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="11" style="text-align: center; padding: 36px; color: var(--earth-muted);">
+            該当する入居者データが見つかりませんでした。
+          </td>
+        </tr>
+      `;
+      return;
+    }
+
+    const masters = window.DataStore.getMasters();
+    const copayList = masters.copay || ['1割', '2割', '3割'];
+    const certStatusList = masters.certStatus || ['有効', '更新申請中', '認定調査済', '結果待ち', '意見書作成中', '区分変更申請中'];
+    const careList = masters.careLevel || ['介1', '介2', '介3', '介4', '介5', '自立', '支1', '支2'];
+
+    tbody.innerHTML = list.map(r => {
+      const isEmpty = !r.name || r.name.trim() === '';
+      const alertInfo = window.DataStore.getCertificationAlertInfo(r.certEndDate);
+      const rowClass = !isEmpty ? alertInfo.rowClass : '';
+
+      return `
+        <tr class="${isEmpty ? 'is-empty-room' : ''} ${rowClass}">
+          <!-- 部屋番号（左端固定） -->
+          <td class="sticky-col-room">
+            <span class="room-badge" style="font-size:13px; font-weight:800;">${r.room || '-'}</span>
+          </td>
+
+          <!-- 名前（左端固定） -->
+          <td class="sticky-col-name" style="font-weight: 700; color: ${r.name ? 'var(--earth-ink)' : '#9ca3af'};">
+            ${r.name || '(空室)'}
+          </td>
+
+          <!-- 介護度（選択式） -->
+          <td>
+            ${!isEmpty ? `
+              <select class="cell-select" style="font-weight: bold;" onchange="window.EarthApp.onCellChange('${r.id}', 'careLevel', this.value)">
+                <option value="">-</option>
+                ${careList.map(opt => `<option value="${opt}" ${r.careLevel === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+              </select>
+            ` : '-'}
+          </td>
+
+          <!-- 負担割合（1割/2割/3割 選択式） -->
+          <td>
+            ${!isEmpty ? `
+              <select class="cell-select" style="font-weight: bold; color: ${r.copay === '3割' ? '#dc2626' : (r.copay === '2割' ? '#d97706' : '#2563eb')};"
+                onchange="window.EarthApp.onCellChange('${r.id}', 'copay', this.value)">
+                ${copayList.map(opt => `<option value="${opt}" ${(r.copay || '1割') === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+              </select>
+            ` : '-'}
+          </td>
+
+          <!-- 被保険者番号（入力式） -->
+          <td>
+            ${!isEmpty ? `
+              <input type="text" class="cell-input font-num" style="font-size: 12px; font-weight: 600;" value="${r.insNumber || ''}" placeholder="0000000000"
+                onchange="window.EarthApp.onCellChange('${r.id}', 'insNumber', this.value)">
+            ` : '-'}
+          </td>
+
+          <!-- 保険者（自治体名） -->
+          <td>
+            ${!isEmpty ? `
+              <input type="text" class="cell-input" style="font-size: 12.5px;" value="${r.insurerName || '静岡市'}" placeholder="自治体名"
+                onchange="window.EarthApp.onCellChange('${r.id}', 'insurerName', this.value)">
+            ` : '-'}
+          </td>
+
+          <!-- 認定開始日 -->
+          <td>
+            ${!isEmpty ? `
+              <input type="text" class="cell-input font-num" style="font-size: 12px;" value="${r.certStartDate || ''}" placeholder="YYYY/MM/DD"
+                onchange="window.EarthApp.onCellChange('${r.id}', 'certStartDate', this.value)">
+            ` : '-'}
+          </td>
+
+          <!-- 認定満了日（有効期限） -->
+          <td>
+            ${!isEmpty ? `
+              <input type="text" class="cell-input font-num" style="font-size: 12px; font-weight: 700;" value="${r.certEndDate || ''}" placeholder="YYYY/MM/DD"
+                onchange="window.EarthApp.onCellChange('${r.id}', 'certEndDate', this.value)">
+            ` : '-'}
+          </td>
+
+          <!-- ⚠️ 認定期限アラートバッジ -->
+          <td style="white-space: nowrap;">
+            ${!isEmpty ? `
+              <span class="${alertInfo.badgeClass}">
+                ${alertInfo.label}
+              </span>
+            ` : '-'}
+          </td>
+
+          <!-- 更新申請状況（選択式） -->
+          <td>
+            ${!isEmpty ? `
+              <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', 'certStatus', this.value)">
+                <option value="">-</option>
+                ${certStatusList.map(opt => `<option value="${opt}" ${r.certStatus === opt ? 'selected' : ''}>${opt}</option>`).join('')}
+              </select>
+            ` : '-'}
+          </td>
+
+          <!-- 主治医（意見書依頼先） -->
+          <td style="font-size: 12.5px; color: var(--earth-muted);">
+            ${r.doctor || '-'}
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  /**
+   * ケアマネ相談員のアラートフィルター切り替え
+   */
+  function filterCareManagerAlert(filterType) {
+    state.careManagerAlertFilter = filterType;
+    renderCareManagerView();
+  }
+
+  /**
    * 全ビューの一括再描画
    */
   function renderAll() {
     renderStatistics();
     if (state.activeTab === 'all') renderAllResidentsTable();
+    else if (state.activeTab === 'caremanager') renderCareManagerView();
     else if (state.activeTab === 'floor') renderFloorMap();
     else if (state.activeTab === 'meal') renderMealView();
     else if (state.activeTab === 'medical') renderMedicalView();
@@ -1366,6 +1544,12 @@
     form.room.value = res.room;
     form.name.value = res.name || '';
     form.careLevel.value = res.careLevel || '';
+    form.copay.value = res.copay || '1割';
+    form.insNumber.value = res.insNumber || '';
+    form.insurerName.value = res.insurerName || '静岡市';
+    form.certStartDate.value = res.certStartDate || '';
+    form.certEndDate.value = res.certEndDate || '';
+    form.certStatus.value = res.certStatus || '有効';
     form.birthday.value = res.birthday || '';
     form.age.value = res.age || '';
     form.entryDate.value = res.entryDate || '';
@@ -1475,7 +1659,8 @@
     selectAllColumns,
     selectStandardColumns,
     selectMealColumns,
-    resetColumnsVisibility
+    resetColumnsVisibility,
+    filterCareManagerAlert
   };
 
   // 起動

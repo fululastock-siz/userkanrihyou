@@ -1494,3 +1494,155 @@ body {
   color: var(--earth-ink);
   flex: 1;
 }
+
+/* ==========================================================================
+   ケアマネ・生活相談員モード専用スタイル
+   ========================================================================== */
+
+.care-alert-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 8px;
+}
+
+.care-alert-card {
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 16px 18px;
+  border: 1px solid var(--earth-border);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.care-alert-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.care-alert-card.card-expired {
+  border-left: 5px solid #ef4444;
+  background: linear-gradient(135deg, #ffffff 70%, #fef2f2);
+}
+.care-alert-card.card-urgent {
+  border-left: 5px solid #f97316;
+  background: linear-gradient(135deg, #ffffff 70%, #fff7ed);
+}
+.care-alert-card.card-warning {
+  border-left: 5px solid #eab308;
+  background: linear-gradient(135deg, #ffffff 70%, #fefce8);
+}
+.care-alert-card.card-ok {
+  border-left: 5px solid #22c55e;
+  background: linear-gradient(135deg, #ffffff 70%, #f0fdf4);
+}
+
+.care-alert-icon {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.care-alert-content {
+  flex: 1;
+}
+
+.care-alert-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--earth-muted);
+  margin-bottom: 2px;
+}
+
+.care-alert-value {
+  font-family: 'Shippori Mincho', serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--earth-ink);
+  line-height: 1.1;
+}
+
+.care-alert-unit {
+  font-size: 13px;
+  font-weight: normal;
+  color: var(--earth-muted);
+}
+
+.care-alert-sub {
+  font-size: 11px;
+  color: var(--earth-muted);
+  margin-top: 3px;
+}
+
+/* 認定期限アラートバッジ */
+.badge-cert-expired {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-weight: 800;
+  font-size: 12px;
+  border: 1px solid #fca5a5;
+  animation: pulseExpired 2s infinite;
+}
+
+@keyframes pulseExpired {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.badge-cert-urgent {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background-color: #ffedd5;
+  color: #c2410c;
+  font-weight: 800;
+  font-size: 12px;
+  border: 1px solid #fed7aa;
+}
+
+.badge-cert-warning {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background-color: #fef9c3;
+  color: #854d0e;
+  font-weight: 700;
+  font-size: 12px;
+  border: 1px solid #fef08a;
+}
+
+.badge-cert-ok {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background-color: #dcfce7;
+  color: #15803d;
+  font-weight: 600;
+  font-size: 11.5px;
+  border: 1px solid #bbf7d0;
+}
+
+/* ケアマネテーブル内の行強調 */
+.data-table tr.row-cert-expired td {
+  background-color: #fff1f2 !important;
+}
+.data-table tr.row-cert-expired td.sticky-col-room,
+.data-table tr.row-cert-expired td.sticky-col-name {
+  background-color: #ffe4e6 !important;
+}
+
+.data-table tr.row-cert-urgent td {
+  background-color: #fffbf5 !important;
+}
+.data-table tr.row-cert-urgent td.sticky-col-room,
+.data-table tr.row-cert-urgent td.sticky-col-name {
+  background-color: #fff3e0 !important;
+}

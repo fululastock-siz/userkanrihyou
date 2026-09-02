@@ -69,6 +69,19 @@
     airConditioner: [
       '〇',
       '×'
+    ],
+    copay: [
+      '1割',
+      '2割',
+      '3割'
+    ],
+    certStatus: [
+      '有効',
+      '更新申請中',
+      '認定調査済',
+      '結果待ち',
+      '意見書作成中',
+      '区分変更申請中'
     ]
   };
 
@@ -198,13 +211,60 @@
             if (!parsed.snapshots || !Array.isArray(parsed.snapshots)) {
               parsed.snapshots = [];
             }
+            // ケアマネ・相談員用フィールド（負担割合、被保番、保険者、有効期間）の補完
+            parsed.residents.forEach((r, idx) => {
+              if (r.name) {
+                if (!r.copay) r.copay = (idx % 8 === 0) ? '2割' : (idx % 15 === 0 ? '3割' : '1割');
+                if (!r.insNumber) r.insNumber = `00${String(12345678 + parseInt(r.room || '0', 10)).padStart(8, '0')}`;
+                if (!r.insurerName) r.insurerName = '静岡市';
+                if (!r.certStartDate) r.certStartDate = '2024/04/01';
+                if (!r.certEndDate) {
+                  if (idx === 0) r.certEndDate = '2026/08/31'; // 期限切れサンプル
+                  else if (idx === 1) r.certEndDate = '2026/09/15'; // 30日以内サンプル
+                  else if (idx === 2) r.certEndDate = '2026/09/28'; // 30日以内サンプル
+                  else if (idx === 3) r.certEndDate = '2026/10/20'; // 60日以内サンプル
+                  else if (idx === 4) r.certEndDate = '2026/10/31'; // 60日以内サンプル
+                  else r.certEndDate = '2027/03/31'; // 有効
+                }
+                if (!r.certStatus) {
+                  if (idx === 0) r.certStatus = '更新申請中';
+                  else if (idx === 1) r.certStatus = '認定調査済';
+                  else if (idx === 2) r.certStatus = '申請準備';
+                  else r.certStatus = '有効';
+                }
+              }
+            });
             return parsed;
           }
         }
       } catch (e) {
         console.warn('Failed to load data from localStorage:', e);
       }
-      return JSON.parse(JSON.stringify(DEFAULT_DATA));
+      
+      const defaultObj = JSON.parse(JSON.stringify(DEFAULT_DATA));
+      defaultObj.residents.forEach((r, idx) => {
+        if (r.name) {
+          if (!r.copay) r.copay = (idx % 8 === 0) ? '2割' : (idx % 15 === 0 ? '3割' : '1割');
+          if (!r.insNumber) r.insNumber = `00${String(12345678 + parseInt(r.room || '0', 10)).padStart(8, '0')}`;
+          if (!r.insurerName) r.insurerName = '静岡市';
+          if (!r.certStartDate) r.certStartDate = '2024/04/01';
+          if (!r.certEndDate) {
+            if (idx === 0) r.certEndDate = '2026/08/31';
+            else if (idx === 1) r.certEndDate = '2026/09/15';
+            else if (idx === 2) r.certEndDate = '2026/09/28';
+            else if (idx === 3) r.certEndDate = '2026/10/20';
+            else if (idx === 4) r.certEndDate = '2026/10/31';
+            else r.certEndDate = '2027/03/31';
+          }
+          if (!r.certStatus) {
+            if (idx === 0) r.certStatus = '更新申請中';
+            else if (idx === 1) r.certStatus = '認定調査済';
+            else if (idx === 2) r.certStatus = '申請準備';
+            else r.certStatus = '有効';
+          }
+        }
+      });
+      return defaultObj;
     }
 
     saveData() {
@@ -605,6 +665,95 @@
         foodSideCounts,
         thickCount,
         earlyCount
+      };
+    }
+
+    // --- ケアマネ・相談員用：認定有効期限アラート計算 ---
+    getCertificationAlertInfo(certEndDateStr) {
+      if (!certEndDateStr) {
+        return { level: 'none', daysLeft: null, label: '未設定', badgeClass: 'badge-muted', rowClass: '' };
+      }
+
+      const cleanStr = String(certEndDateStr).replace(/-/g, '/').trim();
+      const targetDate = new Date(cleanStr);
+      if (isNaN(targetDate.getTime())) {
+        return { level: 'none', daysLeft: null, label: '未設定', badgeClass: 'badge-muted', rowClass: '' };
+      }
+
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      targetDate.setHours(0, 0, 0, 0);
+
+      const diffMs = targetDate.getTime() - today.getTime();
+      const daysLeft = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+      if (daysLeft < 0) {
+        return { 
+          level: 'expired', 
+          daysLeft, 
+          label: `🔴 期限切れ (${Math.abs(daysLeft)}日超過)`, 
+          badgeClass: 'badge-cert-expired', 
+          rowClass: 'row-cert-expired' 
+        };
+      } else if (daysLeft <= 30) {
+        return { 
+          level: 'urgent', 
+          daysLeft, 
+          label: `🟠 残り${daysLeft}日 (要申請)`, 
+          badgeClass: 'badge-cert-urgent', 
+          rowClass: 'row-cert-urgent' 
+        };
+      } else if (daysLeft <= 60) {
+        return { 
+          level: 'warning', 
+          daysLeft, 
+          label: `🟡 残り${daysLeft}日 (申請準備)`, 
+          badgeClass: 'badge-cert-warning', 
+          rowClass: 'row-cert-warning' 
+        };
+      } else {
+        return { 
+          level: 'ok', 
+          daysLeft, 
+          label: `🟢 有効 (${daysLeft}日)`, 
+          badgeClass: 'badge-cert-ok', 
+          rowClass: '' 
+        };
+      }
+    }
+
+    // --- ケアマネ・相談員用サマリー集計 ---
+    getCareManagerSummary() {
+      const residents = this.getAllResidents().filter(r => r.name && r.name.trim() !== '');
+      let expiredCount = 0;
+      let urgentCount = 0;
+      let warningCount = 0;
+      let okCount = 0;
+      let noDateCount = 0;
+
+      const copayCounts = { '1割': 0, '2割': 0, '3割': 0 };
+
+      residents.forEach(r => {
+        const alert = this.getCertificationAlertInfo(r.certEndDate);
+        if (alert.level === 'expired') expiredCount++;
+        else if (alert.level === 'urgent') urgentCount++;
+        else if (alert.level === 'warning') warningCount++;
+        else if (alert.level === 'ok') okCount++;
+        else noDateCount++;
+
+        const cp = r.copay || '1割';
+        if (copayCounts[cp] !== undefined) copayCounts[cp]++;
+        else copayCounts['1割']++;
+      });
+
+      return {
+        totalResidents: residents.length,
+        expiredCount,
+        urgentCount,
+        warningCount,
+        okCount,
+        noDateCount,
+        copayCounts
       };
     }
 
