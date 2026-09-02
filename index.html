@@ -16,7 +16,7 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- スタイルシート（キャッシュバスター付き） -->
-  <link rel="stylesheet" href="assets/css/earth-theme.css?v=20260902_18">
+  <link rel="stylesheet" href="assets/css/earth-theme.css?v=20260902_20">
   <link rel="stylesheet" href="assets/css/print.css?v=20260902_17">
 </head>
 <body>
@@ -723,6 +723,47 @@
     </div>
   </div>
 
+  <!-- フロアマップ専用：居室メモ・カレンダー予定モーダル -->
+  <div class="modal-overlay" id="floor-board-modal">
+    <div class="modal-card floor-board-modal-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="floor-board-title">🗓️ 居室メモ・予定</h2>
+          <div id="floor-board-resident" class="floor-board-resident-label"></div>
+        </div>
+        <button class="modal-close" type="button" onclick="window.EarthApp.closeModal(document.getElementById('floor-board-modal'))">&times;</button>
+      </div>
+      <form id="floor-board-form">
+        <div class="modal-body">
+          <div class="floor-board-section">
+            <label class="form-label" for="floor-room-memo">📝 居室メモ</label>
+            <textarea id="floor-room-memo" class="form-input floor-room-memo-input" rows="5" placeholder="申し送り、対応事項、注意点などを入力"></textarea>
+          </div>
+
+          <div class="floor-board-section floor-calendar-section">
+            <div class="floor-board-section-title">📅 カレンダー予定</div>
+            <div class="floor-event-entry">
+              <div>
+                <label class="form-label" for="floor-event-date">日付</label>
+                <input type="date" id="floor-event-date" class="form-input">
+              </div>
+              <div class="floor-event-title-field">
+                <label class="form-label" for="floor-event-title">予定内容</label>
+                <input type="text" id="floor-event-title" class="form-input" maxlength="80" placeholder="例：訪問診療、家族面会、受診">
+              </div>
+              <button type="button" class="btn btn-primary" id="btn-add-floor-event">＋ 予定を追加</button>
+            </div>
+            <div id="floor-event-list" class="floor-event-list"></div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('floor-board-modal'))">閉じる</button>
+          <button type="submit" class="btn btn-primary">💾 メモを保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- 退去・異動モーダル -->
   <div class="modal-overlay" id="move-out-modal">
     <div class="modal-card" style="width: min(550px, 96vw);">
@@ -958,11 +999,11 @@
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_17"></script>
+  <script src="assets/js/data-store.js?v=20260902_20"></script>
   <script src="assets/js/excel-importer.js?v=20260902_17"></script>
   <script src="assets/js/excel-exporter.js?v=20260902_17"></script>
   <script src="assets/js/google-sheet-sync.js?v=20260902_17"></script>
-  <script src="assets/js/app.js?v=20260902_19"></script>
+  <script src="assets/js/app.js?v=20260902_20"></script>
 
   <script>
     // 印刷日時

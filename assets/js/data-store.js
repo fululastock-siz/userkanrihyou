@@ -321,6 +321,9 @@
             }
             // ケアマネ・相談員用フィールド（負担割合、被保番、保険者、有効期間）の補完
             parsed.residents.forEach((r, idx) => {
+              if (typeof r.floorMemo !== 'string') r.floorMemo = '';
+              if (!Array.isArray(r.floorEvents)) r.floorEvents = [];
+              r.purchaseRequest = Boolean(r.purchaseRequest);
               if (r.name) {
                 if (!r.copay) r.copay = (idx % 8 === 0) ? '2割' : (idx % 15 === 0 ? '3割' : '1割');
                 if (!r.insNumber) r.insNumber = `00${String(12345678 + parseInt(r.room || '0', 10)).padStart(8, '0')}`;
@@ -351,6 +354,9 @@
       
       const defaultObj = JSON.parse(JSON.stringify(DEFAULT_DATA));
       defaultObj.residents.forEach((r, idx) => {
+        r.floorMemo = '';
+        r.floorEvents = [];
+        r.purchaseRequest = false;
         if (r.name) {
           if (!r.copay) r.copay = (idx % 8 === 0) ? '2割' : (idx % 15 === 0 ? '3割' : '1割');
           if (!r.insNumber) r.insNumber = `00${String(12345678 + parseInt(r.room || '0', 10)).padStart(8, '0')}`;
@@ -572,6 +578,30 @@
       });
     }
 
+    updateFloorBoard(residentId, changes) {
+      const resident = this.getResidentById(residentId);
+      if (!resident) return false;
+
+      if (Object.prototype.hasOwnProperty.call(changes, 'floorMemo')) {
+        resident.floorMemo = String(changes.floorMemo || '');
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'floorEvents')) {
+        resident.floorEvents = Array.isArray(changes.floorEvents)
+          ? changes.floorEvents.map(event => ({
+              id: String(event.id || `floor_event_${Date.now()}`),
+              date: String(event.date || ''),
+              title: String(event.title || '').trim()
+            })).filter(event => event.date && event.title)
+          : [];
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'purchaseRequest')) {
+        resident.purchaseRequest = Boolean(changes.purchaseRequest);
+      }
+
+      this.saveData();
+      return true;
+    }
+
     // 居室情報のセル直接更新
     updateResidentField(residentId, fieldKey, value) {
       const res = this.getResidentById(residentId);
@@ -653,6 +683,9 @@
         res.earlyFood = false;
         res.status = "空室";
         res.note = "";
+        res.floorMemo = "";
+        res.floorEvents = [];
+        res.purchaseRequest = false;
         this.saveData();
       }
     }
@@ -893,7 +926,19 @@
 
       // 2. 画面・現在のデータへの反映（マージまたは上書き）
       if (mergeMode === 'overwrite') {
-        this.data.residents = parsedResidents;
+        const floorBoardByRoom = new Map(this.data.residents.map(resident => [String(resident.room), {
+          floorMemo: resident.floorMemo || '',
+          floorEvents: Array.isArray(resident.floorEvents) ? resident.floorEvents : [],
+          purchaseRequest: Boolean(resident.purchaseRequest)
+        }]));
+        this.data.residents = parsedResidents.map(resident => ({
+          ...resident,
+          ...(floorBoardByRoom.get(String(resident.room)) || {
+            floorMemo: '',
+            floorEvents: [],
+            purchaseRequest: false
+          })
+        }));
       } else {
         parsedResidents.forEach(newRes => {
           const idx = this.data.residents.findIndex(r => String(r.room) === String(newRes.room));

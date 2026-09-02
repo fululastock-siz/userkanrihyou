@@ -79,6 +79,17 @@
     residentForm: document.getElementById('resident-form'),
     editModalTitle: document.getElementById('edit-modal-title'),
 
+    // フロアマップ専用メモ・予定
+    floorBoardModal: document.getElementById('floor-board-modal'),
+    floorBoardForm: document.getElementById('floor-board-form'),
+    floorBoardTitle: document.getElementById('floor-board-title'),
+    floorBoardResident: document.getElementById('floor-board-resident'),
+    floorRoomMemo: document.getElementById('floor-room-memo'),
+    floorEventDate: document.getElementById('floor-event-date'),
+    floorEventTitle: document.getElementById('floor-event-title'),
+    floorEventList: document.getElementById('floor-event-list'),
+    btnAddFloorEvent: document.getElementById('btn-add-floor-event'),
+
     // 退去モーダル
     moveOutModal: document.getElementById('move-out-modal'),
     moveOutForm: document.getElementById('move-out-form'),
@@ -88,6 +99,27 @@
     // トースト
     toastContainer: document.getElementById('toast-container')
   };
+
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>'"]/g, char => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      "'": '&#39;',
+      '"': '&quot;'
+    })[char]);
+  }
+
+  function formatFloorEventDate(dateValue) {
+    if (!dateValue) return '日付未設定';
+    const date = new Date(`${dateValue}T00:00:00`);
+    if (Number.isNaN(date.getTime())) return String(dateValue);
+    return date.toLocaleDateString('ja-JP', {
+      month: 'numeric',
+      day: 'numeric',
+      weekday: 'short'
+    });
+  }
 
   /**
    * トースト通知表示
@@ -600,38 +632,44 @@
       // 居室カード一覧
       const cardsHtml = fResidents.map(r => {
         const isEmpty = !r.name || r.name.trim() === '';
-        const foodBadges = [];
-        if (r.foodMain) foodBadges.push(`<span class="tag-food">${r.foodMain}</span>`);
-        if (r.foodSide) foodBadges.push(`<span class="tag-food">${r.foodSide}</span>`);
-        if (r.foodThick && r.foodThick.includes('あり')) foodBadges.push(`<span class="tag-thick">とろみ</span>`);
-        if (r.earlyFood) foodBadges.push(`<span class="tag-early">早出し</span>`);
+        const memo = String(r.floorMemo || '').trim();
+        const events = Array.isArray(r.floorEvents)
+          ? [...r.floorEvents].filter(event => event && event.date && event.title).sort((a, b) => String(a.date).localeCompare(String(b.date)))
+          : [];
+        const today = new Date().toISOString().slice(0, 10);
+        const nextEvent = events.find(event => String(event.date) >= today) || events[0];
+        const hasPurchaseRequest = Boolean(r.purchaseRequest);
 
         return `
-          <div class="room-card ${isEmpty ? 'is-empty' : ''}" onclick="window.EarthApp.openEditModal('${r.id}')">
-            <div>
-              <div class="room-card-header">
-                <span class="room-card-num">${r.room} 号室</span>
-                ${getCareLevelBadge(r.careLevel)}
-              </div>
-              <div class="room-card-name">
-                <span style="font-weight:700;">${r.name || '空室'}</span>
-                ${r.age ? `<small class="font-num" style="color:var(--earth-muted); font-size:12px;">${r.age}歳</small>` : ''}
-              </div>
+          <div class="room-card floor-board-card ${isEmpty ? 'is-empty' : ''} ${hasPurchaseRequest ? 'has-purchase-request' : ''}"
+               role="button" tabindex="0"
+               onclick="window.EarthApp.openFloorBoardModal('${r.id}')"
+               onkeydown="if(event.key === 'Enter' || event.key === ' '){event.preventDefault(); window.EarthApp.openFloorBoardModal('${r.id}');}">
+            <div class="room-card-header">
+              <span class="room-card-num">${escapeHtml(r.room)} 号室</span>
+              ${hasPurchaseRequest ? '<span class="purchase-request-alert">🛒 購入依頼あり</span>' : ''}
             </div>
-            ${!isEmpty ? `
-              <div class="room-card-details">
-                <div><strong>訪問医:</strong> ${r.doctor || '-'}</div>
-                ${r.dental ? `<div><strong>歯科:</strong> ${r.dental}</div>` : ''}
-                ${r.equipment ? `<div><strong>用具:</strong> ${r.equipment}</div>` : ''}
-                <div class="room-card-tags">
-                  ${foodBadges.join('')}
-                </div>
+            <div class="room-card-name floor-board-card-name">
+              <span>${escapeHtml(r.name || '空室')}</span>
+            </div>
+
+            <div class="floor-card-content">
+              <div class="floor-card-memo ${memo ? '' : 'is-empty-value'}">
+                <span class="floor-card-label">📝 メモ</span>
+                <span>${memo ? escapeHtml(memo) : 'メモはありません'}</span>
               </div>
-            ` : `
-              <div style="font-size: 12px; color: #aaa; text-align: center; padding: 12px 0;">
-                クリックして入居者情報確認
+              <div class="floor-card-event ${nextEvent ? '' : 'is-empty-value'}">
+                <span class="floor-card-label">📅 予定</span>
+                <span>${nextEvent ? `${escapeHtml(formatFloorEventDate(nextEvent.date))}　${escapeHtml(nextEvent.title)}` : '予定はありません'}</span>
               </div>
-            `}
+              ${events.length > 1 ? `<span class="floor-event-count">ほか ${events.length - 1}件</span>` : ''}
+            </div>
+
+            <button type="button"
+                    class="purchase-request-toggle ${hasPurchaseRequest ? 'is-on' : ''}"
+                    onclick="event.stopPropagation(); window.EarthApp.togglePurchaseRequest('${r.id}')">
+              ${hasPurchaseRequest ? '🛒 物品購入依頼 ON' : '🛒 物品購入依頼 OFF'}
+            </button>
           </div>
         `;
       }).join('');
@@ -1681,6 +1719,17 @@
       showToast(`${roomNum}号室 (${residentObj.name || '空室'}) の情報を更新しました`);
     });
 
+    // フロアマップ専用メモ・カレンダー
+    if (elements.floorBoardForm) {
+      elements.floorBoardForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        saveFloorBoardMemo();
+      });
+    }
+    if (elements.btnAddFloorEvent) {
+      elements.btnAddFloorEvent.addEventListener('click', addFloorEvent);
+    }
+
     // 退去フォーム送信
     elements.moveOutForm.addEventListener('submit', (e) => {
       e.preventDefault();
@@ -1794,6 +1843,107 @@
         showToast(err.message, 'error');
       }
     }
+  }
+
+  function renderFloorEventList(residentId) {
+    if (!elements.floorEventList) return;
+    const resident = window.DataStore.getResidentById(residentId);
+    const events = resident && Array.isArray(resident.floorEvents)
+      ? [...resident.floorEvents].filter(event => event && event.date && event.title).sort((a, b) => String(a.date).localeCompare(String(b.date)))
+      : [];
+
+    if (events.length === 0) {
+      elements.floorEventList.innerHTML = '<div class="floor-event-empty">登録されている予定はありません</div>';
+      return;
+    }
+
+    const today = new Date().toISOString().slice(0, 10);
+    elements.floorEventList.innerHTML = events.map(event => `
+      <div class="floor-event-item ${String(event.date) < today ? 'is-past' : ''}">
+        <div class="floor-event-date-badge">${escapeHtml(formatFloorEventDate(event.date))}</div>
+        <div class="floor-event-item-title">${escapeHtml(event.title)}</div>
+        <button type="button" class="floor-event-delete"
+                data-resident-id="${escapeHtml(residentId)}"
+                data-event-id="${escapeHtml(event.id)}"
+                onclick="window.EarthApp.removeFloorEvent(this.dataset.residentId, this.dataset.eventId)"
+                title="この予定を削除">削除</button>
+      </div>
+    `).join('');
+  }
+
+  function openFloorBoardModal(residentId) {
+    const resident = window.DataStore.getResidentById(residentId);
+    if (!resident || !elements.floorBoardModal || !elements.floorBoardForm) return;
+
+    elements.floorBoardForm.dataset.residentId = resident.id;
+    elements.floorBoardTitle.textContent = `🗓️ ${resident.room}号室 メモ・予定`;
+    elements.floorBoardResident.textContent = resident.name ? `入居者：${resident.name}` : '現在は空室です';
+    elements.floorRoomMemo.value = resident.floorMemo || '';
+    elements.floorEventDate.value = new Date().toISOString().slice(0, 10);
+    elements.floorEventTitle.value = '';
+    renderFloorEventList(resident.id);
+    elements.floorBoardModal.classList.add('active');
+  }
+
+  function saveFloorBoardMemo() {
+    const residentId = elements.floorBoardForm && elements.floorBoardForm.dataset.residentId;
+    if (!residentId) return;
+    window.DataStore.updateFloorBoard(residentId, {
+      floorMemo: elements.floorRoomMemo.value.trim()
+    });
+    window.GoogleSheetSync.triggerAutoPush();
+    renderFloorMap();
+    showToast('居室メモを保存しました');
+  }
+
+  function addFloorEvent() {
+    const residentId = elements.floorBoardForm && elements.floorBoardForm.dataset.residentId;
+    const resident = residentId ? window.DataStore.getResidentById(residentId) : null;
+    const date = elements.floorEventDate.value;
+    const title = elements.floorEventTitle.value.trim();
+    if (!resident || !date || !title) {
+      showToast('予定の日付と内容を入力してください', 'warning');
+      return;
+    }
+
+    const events = Array.isArray(resident.floorEvents) ? [...resident.floorEvents] : [];
+    events.push({
+      id: `floor_event_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      date,
+      title
+    });
+    window.DataStore.updateFloorBoard(residentId, {
+      floorMemo: elements.floorRoomMemo.value.trim(),
+      floorEvents: events
+    });
+    window.GoogleSheetSync.triggerAutoPush();
+    elements.floorEventTitle.value = '';
+    renderFloorEventList(residentId);
+    renderFloorMap();
+    showToast('カレンダー予定を追加しました');
+  }
+
+  function removeFloorEvent(residentId, eventId) {
+    const resident = window.DataStore.getResidentById(residentId);
+    if (!resident) return;
+    const events = Array.isArray(resident.floorEvents)
+      ? resident.floorEvents.filter(event => String(event.id) !== String(eventId))
+      : [];
+    window.DataStore.updateFloorBoard(residentId, { floorEvents: events });
+    window.GoogleSheetSync.triggerAutoPush();
+    renderFloorEventList(residentId);
+    renderFloorMap();
+    showToast('予定を削除しました');
+  }
+
+  function togglePurchaseRequest(residentId) {
+    const resident = window.DataStore.getResidentById(residentId);
+    if (!resident) return;
+    const nextValue = !resident.purchaseRequest;
+    window.DataStore.updateFloorBoard(residentId, { purchaseRequest: nextValue });
+    window.GoogleSheetSync.triggerAutoPush();
+    renderFloorMap();
+    showToast(nextValue ? `${resident.room}号室を物品購入依頼ありにしました` : `${resident.room}号室の物品購入依頼を解除しました`, nextValue ? 'warning' : 'success');
   }
 
   /**
@@ -1961,6 +2111,9 @@
     removeMaster,
     restoreSnapshot,
     openEditModal,
+    openFloorBoardModal,
+    removeFloorEvent,
+    togglePurchaseRequest,
     openMoveOutModal,
     closeModal,
     showToast,
