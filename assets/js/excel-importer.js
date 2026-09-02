@@ -9,6 +9,7 @@
   // 列名の自動判別用エイリアスマップ（ワイズマンおよび各種介護ソフトに対応）
   const COLUMN_ALIASES = {
     room: ['居室コード', '居室名', '居室番号', '居室', '部屋番号', '部屋', '号室', '室番', 'Room', 'room'],
+    floor: ['フロア', '階数', '階', '階層', 'Floor', 'floor', 'F'],
     name: ['利用者氏名', '利用者名', '入所者氏名', '入所者名', '入居者氏名', '入居者名', '患者名', '氏名', '名前', 'お客様名', 'Name', 'name'],
     entryDate: ['入所年月日', '入所日', '入居年月日', '入居日', '利用開始年月日', '利用開始日', '契約日', '契約開始日', 'EntryDate'],
     careLevel: ['要介護状態区分', '介護度区分', '介護度', '要介護度', '要介護', '認定結果', 'CareLevel'],
@@ -31,6 +32,48 @@
       .replace(/[！-～]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
       .replace(/　/g, ' ')
       .trim();
+  }
+
+  // 居室・フロアの自動判別（居室番号、フロア列、シート名から自動分類）
+  function determineFloor(roomStr, rawFloorVal, sheetName) {
+    // 1. フロア列の指定がある場合
+    if (rawFloorVal) {
+      const fStr = toHalfWidth(rawFloorVal);
+      const m = fStr.match(/(\d+)/);
+      if (m) return parseInt(m[1], 10);
+    }
+
+    // 2. 部屋番号文字列からのインテリジェント判定
+    if (roomStr) {
+      const cleanRoom = toHalfWidth(roomStr);
+
+      // "2F-01", "2F01", "2階-1" などの形式
+      const fMatch = cleanRoom.match(/(\d+)\s*(?:F|階)/i);
+      if (fMatch) return parseInt(fMatch[1], 10);
+
+      // "2-01", "3-15" などのハイフン形式
+      const hyphenMatch = cleanRoom.match(/^(\d+)[-_]/);
+      if (hyphenMatch) return parseInt(hyphenMatch[1], 10);
+
+      // "201", "305", "412", "1002" などの3〜4桁の数字（百の位・千の位をフロアとする）
+      const numOnly = cleanRoom.replace(/[^0-9]/g, '');
+      if (numOnly.length >= 3) {
+        const num = parseInt(numOnly, 10);
+        return Math.floor(num / 100);
+      } else if (numOnly.length > 0) {
+        const num = parseInt(numOnly, 10);
+        if (num >= 1 && num <= 20) return num;
+      }
+    }
+
+    // 3. シート名からの判定（例: "2F", "2階管理表", "3F入居者"）
+    if (sheetName) {
+      const sMatch = sheetName.match(/(\d+)\s*(?:F|階)/i);
+      if (sMatch) return parseInt(sMatch[1], 10);
+    }
+
+    // デフォルト: 2階
+    return 2;
   }
 
   // Excelの日付シリアル値を YYYY/MM/DD に変換
@@ -102,18 +145,38 @@
               }
             }
 
-            const sheet = workbook.Sheets[targetSheetName];
-            const rawJson = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            // 複数シート（2F, 3F 等）がある場合は全シートから抽出、単一シートならそのシートから抽出
+            const parsedResidents = [];
+            const sheetList = workbook.SheetNames;
+            
+            sheetList.forEach(sname => {
+              const sheet = workbook.Sheets[sname];
+              if (!sheet) return;
+              const rawJson = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+              if (rawJson && rawJson.length > 1) {
+                const sheetRes = this.processSheetRows(rawJson, sname);
+                parsedResidents.push(...sheetRes);
+              }
+            });
 
-            const parsedResidents = this.processSheetRows(rawJson);
-            const diffResults = this.generateDiff(parsedResidents);
+            // 部屋番号順にソート（同室重複は後勝ちまたはマージ）
+            const resMap = new Map();
+            parsedResidents.forEach(r => {
+              resMap.set(String(r.room), r);
+            });
+            const uniqueResidents = Array.from(resMap.values()).sort((a, b) => {
+              const numA = parseInt(String(a.room).replace(/[^0-9]/g, ''), 10) || 0;
+              const numB = parseInt(String(b.room).replace(/[^0-9]/g, ''), 10) || 0;
+              return numA - numB;
+            });
 
-            this.currentParsedData = parsedResidents;
+            const diffResults = this.generateDiff(uniqueResidents);
+            this.currentParsedData = uniqueResidents;
 
             resolve({
               sheetNames: workbook.SheetNames,
               activeSheet: targetSheetName,
-              residents: parsedResidents,
+              residents: uniqueResidents,
               diff: diffResults
             });
           } catch (err) {
@@ -129,7 +192,7 @@
     /**
      * 2次元配列のシート行からヘッダー行を特定し入居者オブジェクトへ変換
      */
-    processSheetRows(rows) {
+    processSheetRows(rows, sheetName = '') {
       if (!rows || rows.length < 2) return [];
 
       // ヘッダー行の検出（1〜10行目の中で「部屋」「名前」「氏名」等が含まれる行を探す）
@@ -160,6 +223,7 @@
 
         const rawRoom = colMap.room !== undefined ? row[colMap.room] : '';
         const rawName = colMap.name !== undefined ? row[colMap.name] : '';
+        const rawFloor = colMap.floor !== undefined ? row[colMap.floor] : '';
 
         // 部屋番号も氏名もない行はスキップ
         if (!rawRoom && !rawName) continue;
@@ -177,7 +241,8 @@
         if (!roomNum && rawRoomStr) roomNum = rawRoomStr;
         if (!roomNum) continue;
 
-        const floor = roomNum.startsWith('2') ? 2 : (roomNum.startsWith('3') ? 3 : 1);
+        // フロアの自動分類（部屋番号、フロア指定、シート名から自動判別）
+        const floor = determineFloor(rawRoomStr, rawFloor, sheetName);
 
         const resObj = {
           id: `res_${roomNum}`,
@@ -185,7 +250,7 @@
           floor: floor,
           name: rawNameStr,
           entryDate: colMap.entryDate !== undefined ? normalizeDateStr(row[colMap.entryDate]) : '',
-          careLevel: colMap.careLevel !== undefined ? normalizeCareLevel(row[colMap.careLevel]) : null,
+          careLevel: colMap.careLevel !== undefined ? normalizeCareLevel(row[colMap.careLevel]) : '',
           birthday: colMap.birthday !== undefined ? normalizeDateStr(row[colMap.birthday]) : '',
           age: colMap.age !== undefined && row[colMap.age] !== '' ? parseInt(row[colMap.age], 10) : null,
           doctor: colMap.doctor !== undefined ? String(row[colMap.doctor] || '').trim() : '',

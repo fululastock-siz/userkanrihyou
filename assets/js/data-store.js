@@ -332,12 +332,50 @@
       return this.data.residents.find(r => String(r.room) === String(room)) || null;
     }
 
+    // --- フロア・居室管理 ---
+    getFloors() {
+      const residents = this.getAllResidents();
+      const floorSet = new Set();
+      residents.forEach(r => {
+        let f = r.floor;
+        if (!f && r.room) {
+          const numOnly = String(r.room).replace(/[^0-9]/g, '');
+          if (numOnly.length >= 3) f = Math.floor(parseInt(numOnly, 10) / 100);
+          else if (numOnly.length > 0) f = parseInt(numOnly[0], 10);
+        }
+        if (f) floorSet.add(Number(f));
+      });
+      const floors = Array.from(floorSet).sort((a, b) => a - b);
+      return floors.length > 0 ? floors : [2, 3];
+    }
+
+    getResidentsByFloor(floor) {
+      const residents = this.getAllResidents();
+      return residents.filter(r => {
+        if (String(r.floor) === String(floor)) return true;
+        // 部屋番号からの予備判定
+        const numOnly = String(r.room).replace(/[^0-9]/g, '');
+        if (numOnly.length >= 3 && Math.floor(parseInt(numOnly, 10) / 100) === Number(floor)) return true;
+        if (numOnly.length > 0 && numOnly.startsWith(String(floor))) return true;
+        return false;
+      });
+    }
+
+    // 居室情報のセル直接更新
     updateResidentField(residentId, fieldKey, value) {
       const res = this.getResidentById(residentId);
       if (res) {
-        // 型に応じた変換
         if (fieldKey === 'age') {
           res[fieldKey] = value !== '' && !isNaN(value) ? parseInt(value, 10) : null;
+        } else if (fieldKey === 'room') {
+          res[fieldKey] = String(value).trim();
+          // 部屋番号が変更されたらフロアも自動再計算
+          const numOnly = res.room.replace(/[^0-9]/g, '');
+          if (numOnly.length >= 3) {
+            res.floor = Math.floor(parseInt(numOnly, 10) / 100);
+          } else if (numOnly.length > 0) {
+            res.floor = parseInt(numOnly[0], 10);
+          }
         } else if (fieldKey === 'careLevel') {
           if (!value) {
             res[fieldKey] = '';

@@ -769,20 +769,107 @@ body {
   display: inline-block;
 }
 
-/* フロアマップ（居室見取り図）ビュー */
+/* フロアマップ（居室見取り図）ビュー & 切り替えナビゲーション */
+.floor-nav-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: #ffffff;
+  padding: 12px 18px;
+  border-radius: 12px;
+  border: 1px solid var(--earth-border);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: 24px;
+}
+
+.floor-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.floor-tab-btn {
+  padding: 8px 16px;
+  font-size: 13.5px;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid var(--earth-border);
+  background: #ffffff;
+  color: var(--earth-ink);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.floor-tab-btn:hover {
+  background: var(--earth-green-light);
+  border-color: var(--earth-green);
+  color: var(--earth-green-dark);
+}
+
+.floor-tab-btn.active {
+  background: var(--earth-green);
+  border-color: var(--earth-green-dark);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(36, 125, 27, 0.3);
+}
+
+.floor-map-quick-stat {
+  font-size: 12.5px;
+  color: var(--earth-muted);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
 .floor-section {
   margin-bottom: 36px;
 }
 
+.floor-title-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 14px;
+  padding-bottom: 8px;
+  border-bottom: 2px solid var(--earth-green-light);
+}
+
 .floor-title {
   font-family: 'Shippori Mincho', serif;
-  font-size: 18px;
+  font-size: 19px;
   font-weight: 700;
   color: var(--earth-ink);
-  margin-bottom: 14px;
   display: flex;
   align-items: center;
   gap: 10px;
+  margin: 0;
+}
+
+.floor-badges {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.floor-badge {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.floor-badge-primary {
+  background: var(--earth-green-light);
+  color: var(--earth-green-dark);
 }
 
 .floor-grid {

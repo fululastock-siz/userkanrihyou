@@ -15,7 +15,8 @@
     filterDoctor: 'all',
     filterFood: 'all',
     sortField: 'room',
-    sortAsc: true
+    sortAsc: true,
+    currentFloorView: 'all' // 'all', '2', '3', etc.
   };
 
   // DOM参照
@@ -41,8 +42,9 @@
 
     // ビューコンテナ
     residentTableBody: document.getElementById('resident-table-body'),
-    floor2Grid: document.getElementById('floor-2-grid'),
-    floor3Grid: document.getElementById('floor-3-grid'),
+    floorMapTabs: document.getElementById('floor-map-tabs'),
+    floorMapsContainer: document.getElementById('floor-maps-container'),
+    floorMapStat: document.getElementById('floor-map-stat'),
     mealSummaryGrid: document.getElementById('meal-summary-grid'),
     mealTableBody: document.getElementById('meal-table-body'),
     doctorGrid: document.getElementById('doctor-grid'),
@@ -462,15 +464,92 @@
   }
 
   /**
-   * フロアマップ（居室見取り図）の描画
+   * フロア切り替え
+   */
+  function switchFloorView(floor) {
+    state.currentFloorView = String(floor);
+    renderFloorMap();
+  }
+
+  /**
+   * フロアマップ（居室見取り図）の描画（フロア別＆全フロア一括表示両対応）
    */
   function renderFloorMap() {
-    const residents = window.DataStore.getAllResidents();
-    const floor2List = residents.filter(r => String(r.floor) === '2' || r.room.startsWith('2'));
-    const floor3List = residents.filter(r => String(r.floor) === '3' || r.room.startsWith('3'));
+    const tabsContainer = elements.floorMapTabs;
+    const mapsContainer = elements.floorMapsContainer;
+    const statContainer = elements.floorMapStat;
+    if (!mapsContainer) return;
 
-    const renderGrid = (list) => {
-      return list.map(r => {
+    const floors = window.DataStore.getFloors();
+    const allResidents = window.DataStore.getAllResidents();
+
+    // 1. フロア切り替えタブの描画
+    if (tabsContainer) {
+      const isAllActive = state.currentFloorView === 'all';
+      let tabsHtml = `
+        <button class="floor-tab-btn ${isAllActive ? 'active' : ''}" onclick="window.EarthApp.switchFloorView('all')">
+          🏢 全フロア表示 (全部)
+        </button>
+      `;
+
+      floors.forEach(f => {
+        const isActive = state.currentFloorView === String(f);
+        const fResidents = window.DataStore.getResidentsByFloor(f);
+        const occupiedCount = fResidents.filter(r => r.name && r.name.trim() !== '').length;
+        tabsHtml += `
+          <button class="floor-tab-btn ${isActive ? 'active' : ''}" onclick="window.EarthApp.switchFloorView('${f}')">
+            🏢 ${f}階 (${f}F) <small style="font-weight:normal; opacity:0.85;">(${occupiedCount}/${fResidents.length}名)</small>
+          </button>
+        `;
+      });
+
+      tabsContainer.innerHTML = tabsHtml;
+    }
+
+    // クイック統計
+    if (statContainer) {
+      const totalOccupied = allResidents.filter(r => r.name && r.name.trim() !== '').length;
+      statContainer.innerHTML = `
+        <span>総定員: <strong>${allResidents.length}</strong> 室</span>
+        <span>在室: <strong style="color:var(--earth-green-dark);">${totalOccupied}</strong> 名</span>
+        <span>空室: <strong style="color:var(--earth-muted);">${allResidents.length - totalOccupied}</strong> 室</span>
+      `;
+    }
+
+    // 2. 表示対象のフロア一覧
+    const targetFloors = state.currentFloorView === 'all' 
+      ? floors 
+      : [parseInt(state.currentFloorView, 10) || state.currentFloorView];
+
+    // 3. 各フロアの描画
+    mapsContainer.innerHTML = targetFloors.map(f => {
+      const fResidents = window.DataStore.getResidentsByFloor(f);
+      const occupied = fResidents.filter(r => r.name && r.name.trim() !== '');
+      const occupiedCount = occupied.length;
+      const totalCount = fResidents.length;
+      const emptyCount = totalCount - occupiedCount;
+
+      // フロア平均介護度
+      let careSum = 0;
+      let careCount = 0;
+      occupied.forEach(r => {
+        if (r.careLevel) {
+          const num = parseInt(String(r.careLevel).replace(/[^0-9]/g, ''), 10);
+          if (!isNaN(num) && num >= 1 && num <= 5) {
+            careSum += num;
+            careCount++;
+          }
+        }
+      });
+      const avgCare = careCount > 0 ? (careSum / careCount).toFixed(1) : '-';
+
+      // 居室範囲
+      const firstRoom = fResidents[0] ? fResidents[0].room : '';
+      const lastRoom = fResidents[fResidents.length - 1] ? fResidents[fResidents.length - 1].room : '';
+      const roomRangeText = (firstRoom && lastRoom) ? `(${firstRoom} 〜 ${lastRoom}号室)` : '';
+
+      // 居室カード一覧
+      const cardsHtml = fResidents.map(r => {
         const isEmpty = !r.name || r.name.trim() === '';
         const foodBadges = [];
         if (r.foodMain) foodBadges.push(`<span class="tag-food">${r.foodMain}</span>`);
@@ -486,8 +565,8 @@
                 ${getCareLevelBadge(r.careLevel)}
               </div>
               <div class="room-card-name">
-                <span>${r.name || '空室'}</span>
-                ${r.age ? `<small class="font-num" style="color:var(--earth-muted);">${r.age}歳</small>` : ''}
+                <span style="font-weight:700;">${r.name || '空室'}</span>
+                ${r.age ? `<small class="font-num" style="color:var(--earth-muted); font-size:12px;">${r.age}歳</small>` : ''}
               </div>
             </div>
             ${!isEmpty ? `
@@ -501,16 +580,31 @@
               </div>
             ` : `
               <div style="font-size: 12px; color: #aaa; text-align: center; padding: 12px 0;">
-                クリックして入居者を登録
+                クリックして入居者情報確認
               </div>
             `}
           </div>
         `;
       }).join('');
-    };
 
-    if (elements.floor2Grid) elements.floor2Grid.innerHTML = renderGrid(floor2List);
-    if (elements.floor3Grid) elements.floor3Grid.innerHTML = renderGrid(floor3List);
+      return `
+        <div class="floor-section">
+          <div class="floor-title-container">
+            <h2 class="floor-title">
+              🏢 ${f}階 居室配置図 <span style="font-size: 14px; font-weight: normal; color: var(--earth-muted);">${roomRangeText}</span>
+            </h2>
+            <div class="floor-badges">
+              <span class="floor-badge floor-badge-primary">在室: ${occupiedCount} / ${totalCount} 室</span>
+              ${emptyCount > 0 ? `<span class="floor-badge" style="background:#fef3c7; color:#92400e;">空室: ${emptyCount} 室</span>` : ''}
+              <span class="floor-badge">平均介護度: 介${avgCare}</span>
+            </div>
+          </div>
+          <div class="floor-grid">
+            ${cardsHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
   /**
@@ -1296,6 +1390,7 @@
   // グローバル公開
   window.EarthApp = {
     switchTab,
+    switchFloorView,
     onCellChange,
     removeColumn,
     addMaster,
