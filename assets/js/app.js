@@ -400,8 +400,26 @@
           `;
         }
 
-        // 生年月日・入居日（ジャストフィット）
-        if (col.key === 'birthday' || col.key === 'entryDate') {
+        // 生年月日（和暦表示 ＋ 干支アイコン付き）
+        if (col.key === 'birthday') {
+          const warekiStr = window.DataStore.toWarekiDisplay(val);
+          const zodiac = window.DataStore.getZodiac(val);
+          const zodiacHtml = zodiac 
+            ? `<span class="zodiac-badge" title="干支: ${zodiac.name}年 (${zodiac.read})">${zodiac.icon}</span>` 
+            : '';
+          return `
+            <td style="text-align: center; padding: 2px; white-space: nowrap;">
+              <div style="display: inline-flex; align-items: center; justify-content: center; gap: 3px; width: 100%;">
+                ${zodiacHtml}
+                <input type="text" class="cell-input font-num" value="${warekiStr}" style="width: 62px; text-align: center; font-size: 11px; padding: 2px 0; font-family: inherit;"
+                  onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="-">
+              </div>
+            </td>
+          `;
+        }
+
+        // 入居日（ジャストフィット）
+        if (col.key === 'entryDate') {
           return `
             <td style="text-align: center; padding: 2px;">
               <input type="text" class="cell-input font-num" value="${val}" style="width: 100%; text-align: center; font-size: 11px; padding: 2px 0; font-family: inherit;"
@@ -1685,9 +1703,26 @@
    * テーブル内セル直接変更ハンドラー
    */
   function onCellChange(residentId, fieldKey, value) {
-    window.DataStore.updateResidentField(residentId, fieldKey, value);
+    let finalValue = value;
+    if (fieldKey === 'birthday' && value) {
+      finalValue = window.DataStore.toWarekiDisplay(value);
+      // 生年月日に基づく年齢の自動計算
+      const parsed = window.DataStore.parseDateToSeireki(value);
+      if (parsed) {
+        const today = new Date();
+        let age = today.getFullYear() - parsed.year;
+        const mDiff = (today.getMonth() + 1) - parsed.month;
+        if (mDiff < 0 || (mDiff === 0 && today.getDate() < parsed.day)) {
+          age--;
+        }
+        if (age >= 0 && age <= 130) {
+          window.DataStore.updateResidentField(residentId, 'age', age);
+        }
+      }
+    }
+    window.DataStore.updateResidentField(residentId, fieldKey, finalValue);
     window.GoogleSheetSync.triggerAutoPush();
-    showToast(`更新しました (${fieldKey}: ${value !== '' ? value : '空欄'})`);
+    showToast(`更新しました (${fieldKey}: ${finalValue !== '' ? finalValue : '空欄'})`);
   }
 
   /**

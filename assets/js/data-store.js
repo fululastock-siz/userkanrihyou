@@ -85,13 +85,111 @@
     ]
   };
 
+  // 十二支（干支）定義
+  const ZODIAC_LIST = [
+    { icon: '🐭', name: '子', read: 'ね' },
+    { icon: '🐮', name: '丑', read: 'うし' },
+    { icon: '🐯', name: '寅', read: 'とら' },
+    { icon: '🐰', name: '卯', read: 'う' },
+    { icon: '🐲', name: '辰', read: 'たつ' },
+    { icon: '🐍', name: '巳', read: 'み' },
+    { icon: '🐴', name: '午', read: 'うま' },
+    { icon: '🐑', name: '未', read: 'ひつじ' },
+    { icon: '🐵', name: '申', read: 'さる' },
+    { icon: '🐔', name: '酉', read: 'とり' },
+    { icon: '🐶', name: '戌', read: 'いぬ' },
+    { icon: '🐗', name: '亥', read: 'い' }
+  ];
+
+  /**
+   * 日付文字列を解析して西暦 { year, month, day } を返す
+   */
+  function parseDateToSeireki(dateStr) {
+    if (!dateStr) return null;
+    let str = String(dateStr).trim();
+
+    // 1. 西暦形式 YYYY/MM/DD, YYYY-MM-DD, YYYY年MM月DD日
+    const sMatch = str.match(/^(\d{4})[\/\-\.年](\d{1,2})[\/\-\.月](\d{1,2})日?$/);
+    if (sMatch) {
+      return {
+        year: parseInt(sMatch[1], 10),
+        month: parseInt(sMatch[2], 10),
+        day: parseInt(sMatch[3], 10)
+      };
+    }
+
+    // 2. 和暦形式 (S24/06/08, 昭和24年6月8日, T11/04/20, M45/1/1, H1/2/3, R2/3/4 等)
+    str = str.replace(/元年/g, '1年').replace(/元[\/\.\-]/g, '1/');
+    str = str.replace(/明治/g, 'M').replace(/大正/g, 'T').replace(/昭和/g, 'S').replace(/平成/g, 'H').replace(/令和/g, 'R');
+    str = str.replace(/年|\./g, '/').replace(/月/g, '/').replace(/日/g, '').replace(/\s+/g, '');
+
+    const wMatch = str.match(/^([MTSHR])(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{1,2})$/i);
+    if (wMatch) {
+      const g = wMatch[1].toUpperCase();
+      const gy = parseInt(wMatch[2], 10);
+      const m = parseInt(wMatch[3], 10);
+      const d = parseInt(wMatch[4], 10);
+
+      let seirekiYear = 1925 + gy; // default 昭和
+      if (g === 'R') seirekiYear = 2018 + gy;
+      else if (g === 'H') seirekiYear = 1988 + gy;
+      else if (g === 'S') seirekiYear = 1925 + gy;
+      else if (g === 'T') seirekiYear = 1911 + gy;
+      else if (g === 'M') seirekiYear = 1867 + gy;
+
+      return { year: seirekiYear, month: m, day: d };
+    }
+
+    return null;
+  }
+
+  /**
+   * 生年月日の文字列から干支情報を取得
+   */
+  function getZodiac(dateStrOrYear) {
+    if (!dateStrOrYear) return null;
+    let year = null;
+    if (typeof dateStrOrYear === 'number') {
+      year = dateStrOrYear;
+    } else {
+      const parsed = parseDateToSeireki(dateStrOrYear);
+      if (parsed) year = parsed.year;
+    }
+    if (!year || isNaN(year)) return null;
+    const index = (year - 4) % 12;
+    const normalizedIdx = (index + 12) % 12;
+    return ZODIAC_LIST[normalizedIdx];
+  }
+
+  /**
+   * 生年月日の文字列を「和暦（例: S07/01/12）」に正規化
+   */
+  function toWarekiDisplay(dateStr) {
+    if (!dateStr) return '';
+    const parsed = parseDateToSeireki(dateStr);
+    if (!parsed) return String(dateStr);
+    const { year, month, day } = parsed;
+
+    const dNum = year * 10000 + month * 100 + day;
+    let g = 'S', gy = year - 1925;
+    if (dNum >= 20190501) { g = 'R'; gy = year - 2018; }
+    else if (dNum >= 19890108) { g = 'H'; gy = year - 1988; }
+    else if (dNum >= 19261225) { g = 'S'; gy = year - 1925; }
+    else if (dNum >= 19120730) { g = 'T'; gy = year - 1911; }
+    else if (dNum >= 18680125) { g = 'M'; gy = year - 1867; }
+
+    const mStr = String(month).padStart(2, '0');
+    const dStr = String(day).padStart(2, '0');
+    return `${g}${String(gy).padStart(2, '0')}/${mStr}/${dStr}`;
+  }
+
   // カラムの初期デフォルト定義（ジャストフィット極小幅化）
   const DEFAULT_COLUMNS = [
     { key: 'room', label: '部屋', type: 'text', fixed: true, sortable: true, width: '50px' },
     { key: 'name', label: '名前', type: 'text', fixed: true, sortable: true, width: '100px' },
     { key: 'careLevel', label: '介護度', type: 'select', masterKey: 'careLevel', options: ['', '介1', '介2', '介3', '介4', '介5', '自立', '支1', '支2'], sortable: true, width: '50px' },
     { key: 'age', label: '年齢', type: 'number', sortable: true, width: '38px' },
-    { key: 'birthday', label: '生年月日', type: 'text', sortable: false, width: '72px' },
+    { key: 'birthday', label: '生年月日', type: 'text', sortable: false, width: '84px' },
     { key: 'entryDate', label: '入居日', type: 'text', sortable: true, width: '78px' },
     { key: 'doctor', label: '訪問医', type: 'select', masterKey: 'doctor', sortable: false, width: '125px' },
     { key: 'dental', label: '口腔衛生', type: 'select', masterKey: 'dental', sortable: false, width: '110px' },
@@ -859,7 +957,22 @@
       this.data = JSON.parse(JSON.stringify(DEFAULT_DATA));
       this.saveData();
     }
+
+    getZodiac(dateStrOrYear) {
+      return getZodiac(dateStrOrYear);
+    }
+
+    toWarekiDisplay(dateStr) {
+      return toWarekiDisplay(dateStr);
+    }
+
+    parseDateToSeireki(dateStr) {
+      return parseDateToSeireki(dateStr);
+    }
   }
 
   window.DataStore = new DataStore();
+  window.DataStore.getZodiac = getZodiac;
+  window.DataStore.toWarekiDisplay = toWarekiDisplay;
+  window.DataStore.parseDateToSeireki = parseDateToSeireki;
 })(window);
