@@ -256,9 +256,48 @@
       this.saveData();
     }
 
-    // --- 列（カラム）管理＆並び替え ---
+    // --- 列（カラム）管理＆表示切り替え＆並び替え ---
     getColumns() {
       return this.data.columns || DEFAULT_COLUMNS;
+    }
+
+    // 表示が有効なカラムのみを取得
+    getVisibleColumns() {
+      const cols = this.getColumns();
+      return cols.filter(c => c.visible !== false && c.hidden !== true);
+    }
+
+    // 列の表示/非表示切り替え
+    setColumnVisibility(key, isVisible) {
+      if (!this.data.columns) this.data.columns = [...DEFAULT_COLUMNS];
+      const col = this.data.columns.find(c => c.key === key);
+      if (col) {
+        col.visible = Boolean(isVisible);
+        col.hidden = !isVisible;
+        this.saveData();
+      }
+    }
+
+    // 複数列の表示/非表示を一括更新
+    setColumnsVisibility(visibilityMap) {
+      if (!this.data.columns) this.data.columns = [...DEFAULT_COLUMNS];
+      this.data.columns.forEach(c => {
+        if (visibilityMap[c.key] !== undefined) {
+          c.visible = Boolean(visibilityMap[c.key]);
+          c.hidden = !c.visible;
+        }
+      });
+      this.saveData();
+    }
+
+    // 初期表示（全列表示）にリセット
+    resetColumnsVisibility() {
+      if (!this.data.columns) this.data.columns = [...DEFAULT_COLUMNS];
+      this.data.columns.forEach(c => {
+        c.visible = true;
+        c.hidden = false;
+      });
+      this.saveData();
     }
 
     reorderColumns(fromKey, toKey) {

@@ -216,7 +216,7 @@
     const tbody = elements.residentTableBody;
     if (!tbody || !thead) return;
 
-    const columns = window.DataStore.getColumns();
+    const columns = window.DataStore.getVisibleColumns();
     const masters = window.DataStore.getMasters();
 
     // 1. ヘッダーの描画（ドラッグ並び替え対応）
@@ -844,6 +844,32 @@
   }
 
   /**
+   * 表示項目（ワイズマンヘッダ）選択モーダルの描画
+   */
+  function renderColumnVisibilityManager() {
+    const container = document.getElementById('column-visibility-list');
+    if (!container) return;
+
+    const allColumns = window.DataStore.getColumns();
+
+    container.innerHTML = allColumns.map(col => {
+      const isFixed = col.fixed === true;
+      const isVisible = col.visible !== false && col.hidden !== true;
+
+      return `
+        <label class="col-vis-item ${isFixed ? 'fixed-item' : ''}" title="${isFixed ? '必須項目のため固定されています' : 'クリックして表示/非表示を切り替え'}">
+          <input type="checkbox" class="col-vis-checkbox" 
+            ${isVisible ? 'checked' : ''} 
+            ${isFixed ? 'disabled' : ''}
+            onchange="window.EarthApp.toggleColumnVisibility('${col.key}', this.checked)">
+          <span class="col-vis-label">${col.label}</span>
+          ${isFixed ? '<span style="font-size:11px; color:var(--earth-muted); font-weight:normal;">(固定)</span>' : ''}
+        </label>
+      `;
+    }).join('');
+  }
+
+  /**
    * 項目マスタ管理モーダルの描画
    */
   function renderMasterManager() {
@@ -969,6 +995,16 @@
       state.filterFood = e.target.value;
       renderAll();
     });
+
+    // 表示項目（ワイズマンヘッダ）選択モーダル開閉
+    const btnOpenVisModal = document.getElementById('btn-open-visibility-modal');
+    const visModal = document.getElementById('column-visibility-modal');
+    if (btnOpenVisModal && visModal) {
+      btnOpenVisModal.addEventListener('click', () => {
+        renderColumnVisibilityManager();
+        visModal.classList.add('active');
+      });
+    }
 
     // 項目マスタ管理モーダル開閉
     const btnOpenMasterModal = document.getElementById('btn-open-master-modal');
@@ -1361,6 +1397,52 @@
     elements.moveOutModal.classList.add('active');
   }
 
+  // --- 表示列（ワイズマンヘッダ）選択制御アクション ---
+  function toggleColumnVisibility(key, visible) {
+    window.DataStore.setColumnVisibility(key, visible);
+    renderAllResidentsTable();
+    renderColumnVisibilityManager();
+  }
+
+  function selectAllColumns(visible = true) {
+    const cols = window.DataStore.getColumns();
+    const map = {};
+    cols.forEach(c => { map[c.key] = visible; });
+    window.DataStore.setColumnsVisibility(map);
+    renderAllResidentsTable();
+    renderColumnVisibilityManager();
+    showToast(visible ? 'すべての項目を表示に設定しました' : '必須項目以外を非表示にしました');
+  }
+
+  function selectStandardColumns() {
+    const standardKeys = ['room', 'name', 'careLevel', 'age', 'entryDate', 'doctor', 'foodMain', 'foodSide'];
+    const cols = window.DataStore.getColumns();
+    const map = {};
+    cols.forEach(c => { map[c.key] = standardKeys.includes(c.key); });
+    window.DataStore.setColumnsVisibility(map);
+    renderAllResidentsTable();
+    renderColumnVisibilityManager();
+    showToast('基本項目（部屋・名前・介護度・年齢・入居日・訪問医・食事）のみを表示しました');
+  }
+
+  function selectMealColumns() {
+    const mealKeys = ['room', 'name', 'careLevel', 'foodMain', 'foodSide', 'foodThick', 'earlyFood'];
+    const cols = window.DataStore.getColumns();
+    const map = {};
+    cols.forEach(c => { map[c.key] = mealKeys.includes(c.key); });
+    window.DataStore.setColumnsVisibility(map);
+    renderAllResidentsTable();
+    renderColumnVisibilityManager();
+    showToast('食事関連項目のみを表示しました');
+  }
+
+  function resetColumnsVisibility() {
+    window.DataStore.resetColumnsVisibility();
+    renderAllResidentsTable();
+    renderColumnVisibilityManager();
+    showToast('表示項目を初期状態に戻しました');
+  }
+
   // アプリケーション初期化
   function init() {
     setupEventListeners();
@@ -1387,7 +1469,12 @@
     openEditModal,
     openMoveOutModal,
     closeModal,
-    showToast
+    showToast,
+    toggleColumnVisibility,
+    selectAllColumns,
+    selectStandardColumns,
+    selectMealColumns,
+    resetColumnsVisibility
   };
 
   // 起動

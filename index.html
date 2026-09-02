@@ -201,6 +201,10 @@
             <option value="early">早出し対象</option>
           </select>
 
+          <button class="btn btn-outline" id="btn-open-visibility-modal" style="font-size: 13px;" title="全体管理表に表示するワイズマン項目・列を選択">
+            👁️ 表示項目の選択
+          </button>
+
           <button class="btn btn-outline" id="btn-open-master-modal" style="font-size: 13px;" title="訪問医・用具・食事形態などの選択肢マスタを編集">
             ⚙️ 項目マスタ管理
           </button>
@@ -697,16 +701,54 @@
     </div>
   </div>
 
+  <!-- 表示項目（列）選択モーダル -->
+  <div class="modal-overlay" id="column-visibility-modal">
+    <div class="modal-card" style="width: min(650px, 96vw);">
+      <div class="modal-header">
+        <h2>👁️ 全体管理表の表示項目（ワイズマンヘッダ）選択</h2>
+        <button class="modal-close" onclick="window.EarthApp.closeModal(document.getElementById('column-visibility-modal'))">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh;">
+        <p style="font-size: 13px; color: var(--earth-muted); margin-bottom: 16px;">
+          全体管理表に表示する項目（ワイズマンヘッダ）を選択できます。<br>
+          チェックを外した列は表から非表示になり、必要な項目だけに絞り込んで見やすくできます。
+        </p>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+          <button type="button" class="btn btn-outline btn-sm" onclick="window.EarthApp.selectAllColumns(true)">
+            ✅ すべて表示
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="window.EarthApp.selectStandardColumns()">
+            📋 基本項目のみ
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="window.EarthApp.selectMealColumns()">
+            🍽️ 食事関連のみ
+          </button>
+          <button type="button" class="btn btn-outline btn-sm" onclick="window.EarthApp.resetColumnsVisibility()">
+            🔄 初期状態に戻す
+          </button>
+        </div>
+
+        <div id="column-visibility-list" class="column-visibility-grid">
+          <!-- JavaScriptで動的生成 -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" onclick="window.EarthApp.closeModal(document.getElementById('column-visibility-modal'))">完了</button>
+      </div>
+    </div>
+  </div>
+
   <!-- トースト通知コンテナ -->
   <div class="toast-container" id="toast-container"></div>
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_3"></script>
-  <script src="assets/js/excel-importer.js?v=20260902_3"></script>
-  <script src="assets/js/excel-exporter.js?v=20260902_3"></script>
-  <script src="assets/js/google-sheet-sync.js?v=20260902_3"></script>
-  <script src="assets/js/app.js?v=20260902_3"></script>
+  <script src="assets/js/data-store.js?v=20260902_4"></script>
+  <script src="assets/js/excel-importer.js?v=20260902_4"></script>
+  <script src="assets/js/excel-exporter.js?v=20260902_4"></script>
+  <script src="assets/js/google-sheet-sync.js?v=20260902_4"></script>
+  <script src="assets/js/app.js?v=20260902_4"></script>
 
   <script>
     // 印刷日時

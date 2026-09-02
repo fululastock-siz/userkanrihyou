@@ -1324,3 +1324,52 @@ body {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* 表示項目（ワイズマンヘッダ）選択グリッド */
+.column-visibility-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 10px;
+  background: #f8faf9;
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--earth-border);
+}
+
+.col-vis-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid var(--earth-border);
+  cursor: pointer;
+  transition: all 0.2s;
+  user-select: none;
+}
+
+.col-vis-item:hover {
+  border-color: var(--earth-green);
+  background-color: var(--earth-green-light);
+}
+
+.col-vis-item input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: var(--earth-green);
+  cursor: pointer;
+}
+
+.col-vis-item.fixed-item {
+  opacity: 0.75;
+  background: #f1f5f9;
+  cursor: not-allowed;
+}
+
+.col-vis-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--earth-ink);
+  flex: 1;
+}
