@@ -41,20 +41,20 @@
         </div>
 
         <div class="header-actions">
-          <button class="btn btn-primary" id="btn-sheet-sync-modal" title="Googleスプレッドシートと双方向同期・連携">
+          <button class="btn btn-primary" id="btn-header-wiseman-import" onclick="window.EarthApp.switchTab('import')" title="ワイズマンのExcel/CSVを取り込んでデータを更新">
+            📥 ワイズマンデータ読込
+          </button>
+          <button class="btn btn-outline" id="btn-sheet-sync-modal" title="Googleスプレッドシートと双方向同期・連携">
             📊 スプレッドシート連携
           </button>
           <button class="btn btn-outline" id="btn-export-excel" title="現在の管理表をExcel(.xlsx)形式で保存">
-            📥 Excel出力
+            📤 Excel出力
           </button>
           <button class="btn btn-outline" id="btn-export-csv" title="CSV形式で保存">
             📄 CSV出力
           </button>
           <button class="btn btn-outline" id="btn-print" title="印刷またはPDFとして保存">
             🖨️ 帳票印刷 (A4)
-          </button>
-          <button class="btn btn-gold" onclick="window.EarthApp.openEditModal('new')" title="新しい入居者を追加">
-            ➕ 入居者新規登録
           </button>
           <button class="btn btn-outline btn-sm" id="btn-reset-data" style="margin-left: 6px; color: var(--earth-muted);" title="初期データに戻す">
             🔄 初期化
@@ -200,6 +200,14 @@
             <option value="thick">とろみあり</option>
             <option value="early">早出し対象</option>
           </select>
+
+          <button class="btn btn-outline" id="btn-open-master-modal" style="font-size: 13px;" title="訪問医・用具・食事形態などの選択肢マスタを編集">
+            ⚙️ 項目マスタ管理
+          </button>
+
+          <button class="btn btn-outline" id="btn-open-snapshot-modal" style="font-size: 13px;" title="過去のデータ取り込み履歴・バックアップを確認・復元">
+            📜 取り込み履歴
+          </button>
 
           <button class="btn btn-outline" id="btn-open-add-col-modal" style="margin-left: auto; font-size: 13px;" title="管理項目（列）を新しく追加">
             ➕ 管理項目を追加
@@ -642,6 +650,50 @@
           <button type="submit" class="btn btn-primary">項目を追加する</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- 項目マスタ管理モーダル -->
+  <div class="modal-overlay" id="master-manager-modal">
+    <div class="modal-card" style="width: min(800px, 96vw);">
+      <div class="modal-header">
+        <h2>⚙️ 項目マスタ（選択肢一覧）の管理</h2>
+        <button class="modal-close" onclick="window.EarthApp.closeModal(document.getElementById('master-manager-modal'))">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh;">
+        <p style="font-size: 13px; color: var(--earth-muted); margin-bottom: 20px;">
+          表内の各項目で選択できる候補（医師名、歯科名、福祉用具、食事形態等）を管理します。<br>
+          ここで追加・削除した選択肢は、全体管理表のドロップダウンに即座に反映されます。
+        </p>
+        <div id="master-sections-container">
+          <!-- JavaScriptで動的生成 -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('master-manager-modal'))">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 取り込み履歴＆バックアップ復元モーダル -->
+  <div class="modal-overlay" id="snapshot-history-modal">
+    <div class="modal-card" style="width: min(780px, 96vw);">
+      <div class="modal-header">
+        <h2>📜 データ取り込み履歴 ＆ 過去バックアップ</h2>
+        <button class="modal-close" onclick="window.EarthApp.closeModal(document.getElementById('snapshot-history-modal'))">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height: 70vh;">
+        <p style="font-size: 13px; color: var(--earth-muted); margin-bottom: 16px;">
+          ワイズマン等のExcelを取り込む直前のデータ状態が自動的にアーカイブ保存されています。<br>
+          誤って取り込んだ場合や過去の状態に戻したい場合は、「この状態に復元」をクリックしてください。
+        </p>
+        <div id="snapshot-list-container">
+          <!-- JavaScriptで動的生成 -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('snapshot-history-modal'))">閉じる</button>
+      </div>
     </div>
   </div>
 

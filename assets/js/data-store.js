@@ -8,27 +8,83 @@
 
   const STORAGE_KEY = 'earth_residents_management_data_v1';
 
+  // 項目マスタの初期デフォルト定義
+  const DEFAULT_MASTERS = {
+    doctor: [
+      '井上Dr.　城西',
+      '堀池Dr.　とやま',
+      '日野Dr.　城西',
+      '平野Dr　平野',
+      '内田Dr.　静岡ホーム',
+      '野村Dr.　静岡ホーム',
+      '古谷Dr.　静岡ホーム',
+      '梅内Dr.　静岡ホーム',
+      '安部Dr.　とやま',
+      '外山Dr.　とやま',
+      '東静岡クリニック'
+    ],
+    dental: [
+      '小嶋デンタル',
+      'さくらばし歯科',
+      'なし'
+    ],
+    equipment: [
+      '施　車椅子',
+      '購　歩行器',
+      'レ　リクライニング式車椅子',
+      'レ　車椅子',
+      '施　歩行器',
+      '多機能車椅子',
+      '購　車椅子',
+      '歩行器'
+    ],
+    foodMain: [
+      '米飯',
+      '軟飯',
+      '全粥',
+      'パン',
+      'ミキサー'
+    ],
+    foodSide: [
+      '普通',
+      '一口',
+      'きざみ',
+      '極キザミ',
+      'ミキサー'
+    ],
+    foodThick: [
+      '無し',
+      'あり'
+    ],
+    airConditioner: [
+      '〇',
+      '×'
+    ]
+  };
+
   // カラムの初期デフォルト定義
   const DEFAULT_COLUMNS = [
     { key: 'room', label: '部屋', type: 'text', fixed: true, sortable: true, width: '85px' },
     { key: 'name', label: '名前', type: 'text', fixed: true, sortable: true, width: '130px' },
-    { key: 'careLevel', label: '介護度', type: 'select', options: ['', '1', '2', '3', '4', '5'], sortable: true, width: '105px' },
+    { key: 'careLevel', label: '介護度', type: 'select', masterKey: 'careLevel', options: ['', '1', '2', '3', '4', '5'], sortable: true, width: '105px' },
     { key: 'age', label: '年齢', type: 'number', sortable: true, width: '75px' },
     { key: 'birthday', label: '生年月日', type: 'text', sortable: false, width: '110px' },
     { key: 'entryDate', label: '入居日', type: 'text', sortable: true, width: '110px' },
-    { key: 'doctor', label: '訪問医', type: 'text', sortable: false, width: '160px' },
-    { key: 'dental', label: '口腔衛生', type: 'text', sortable: false, width: '130px' },
-    { key: 'equipment', label: '福祉用具', type: 'text', sortable: false, width: '160px' },
-    { key: 'foodMain', label: 'ごはん', type: 'text', sortable: false, width: '100px' },
-    { key: 'foodSide', label: 'おかず', type: 'text', sortable: false, width: '100px' },
-    { key: 'foodThick', label: 'とろみ', type: 'select', options: ['', 'あり', '無し'], sortable: false, width: '90px' },
-    { key: 'airConditioner', label: 'エアコン', type: 'select', options: ['〇', '×', ''], sortable: false, width: '90px' },
+    { key: 'doctor', label: '訪問医', type: 'select', masterKey: 'doctor', sortable: false, width: '170px' },
+    { key: 'dental', label: '口腔衛生', type: 'select', masterKey: 'dental', sortable: false, width: '140px' },
+    { key: 'equipment', label: '福祉用具', type: 'select', masterKey: 'equipment', sortable: false, width: '180px' },
+    { key: 'foodMain', label: 'ごはん', type: 'select', masterKey: 'foodMain', sortable: false, width: '110px' },
+    { key: 'foodSide', label: 'おかず', type: 'select', masterKey: 'foodSide', sortable: false, width: '110px' },
+    { key: 'foodThick', label: 'とろみ', type: 'select', masterKey: 'foodThick', sortable: false, width: '95px' },
+    { key: 'airConditioner', label: 'エアコン', type: 'select', masterKey: 'airConditioner', sortable: false, width: '95px' },
     { key: 'earlyFood', label: '早出し', type: 'checkbox', sortable: false, width: '80px' }
   ];
 
   // デフォルト初期データ（Googleスプレッドシートより抽出）
   const DEFAULT_DATA = {
     columns: DEFAULT_COLUMNS,
+    masters: DEFAULT_MASTERS,
+    snapshots: [], // ワイズマンインポート前のデータスナップショット履歴
     residents: [
       { id: "res_201", room: "201", floor: 2, name: "熊木　勝", entryDate: "2026/07/14", careLevel: 4, birthday: "S24/06/08", age: 77, doctor: "井上Dr.　城西", dental: "", equipment: "施　車椅子", foodMain: "米飯", foodSide: "普通", foodThick: "", airConditioner: "〇", earlyFood: false, status: "入居中", note: "" },
       { id: "res_202", room: "202", floor: 2, name: "石垣　和子", entryDate: "2025/07/08", careLevel: 4, birthday: "S07/1/12", age: 93, doctor: "堀池Dr.　とやま", dental: "", equipment: "", foodMain: "軟飯", foodSide: "一口", foodThick: "無し", airConditioner: "〇", earlyFood: false, status: "入居中", note: "" },
@@ -124,6 +180,14 @@
             if (!parsed.columns || !Array.isArray(parsed.columns)) {
               parsed.columns = DEFAULT_COLUMNS;
             }
+            // マスタが存在しない場合は初期マスタをセット
+            if (!parsed.masters || typeof parsed.masters !== 'object') {
+              parsed.masters = JSON.parse(JSON.stringify(DEFAULT_MASTERS));
+            }
+            // スナップショット履歴の初期化
+            if (!parsed.snapshots || !Array.isArray(parsed.snapshots)) {
+              parsed.snapshots = [];
+            }
             return parsed;
           }
         }
@@ -151,8 +215,53 @@
       this.listeners.forEach(fn => fn(this.data));
     }
 
+    // --- 項目マスタ管理 ---
+    getMasters() {
+      return this.data.masters || DEFAULT_MASTERS;
+    }
+
+    getMaster(key) {
+      const masters = this.getMasters();
+      return masters[key] || [];
+    }
+
+    saveMasters(newMasters) {
+      this.data.masters = { ...this.getMasters(), ...newMasters };
+      this.saveData();
+    }
+
+    addMasterItem(key, item) {
+      if (!this.data.masters) this.data.masters = JSON.parse(JSON.stringify(DEFAULT_MASTERS));
+      if (!this.data.masters[key]) this.data.masters[key] = [];
+      const trimmed = String(item).trim();
+      if (trimmed && !this.data.masters[key].includes(trimmed)) {
+        this.data.masters[key].push(trimmed);
+        this.saveData();
+      }
+    }
+
+    removeMasterItem(key, item) {
+      if (!this.data.masters || !this.data.masters[key]) return;
+      this.data.masters[key] = this.data.masters[key].filter(i => i !== item);
+      this.saveData();
+    }
+
+    // --- 列（カラム）管理＆並び替え ---
     getColumns() {
       return this.data.columns || DEFAULT_COLUMNS;
+    }
+
+    reorderColumns(fromKey, toKey) {
+      if (!this.data.columns) return;
+      const cols = [...this.data.columns];
+      const fromIdx = cols.findIndex(c => c.key === fromKey);
+      const toIdx = cols.findIndex(c => c.key === toKey);
+      if (fromIdx >= 0 && toIdx >= 0 && fromIdx !== toIdx) {
+        const [moved] = cols.splice(fromIdx, 1);
+        cols.splice(toIdx, 0, moved);
+        this.data.columns = cols;
+        this.saveData();
+      }
     }
 
     addColumn(columnDef) {
@@ -165,7 +274,18 @@
         throw new Error(`項目キー "${columnDef.key}" は既に存在します`);
       }
       this.data.columns.push(columnDef);
+
+      // 選択肢がある場合はマスタにも登録
+      if (columnDef.options && Array.isArray(columnDef.options)) {
+        this.addMasterList(columnDef.key, columnDef.options);
+      }
+
       this.saveData();
+    }
+
+    addMasterList(key, list) {
+      if (!this.data.masters) this.data.masters = JSON.parse(JSON.stringify(DEFAULT_MASTERS));
+      this.data.masters[key] = list;
     }
 
     removeColumn(columnKey) {
@@ -369,23 +489,87 @@
       };
     }
 
-    importFromExcel(parsedResidents, mergeMode = 'merge') {
+    // --- インポート処理と過去スナップショット履歴の自動保存 ---
+    importFromExcel(parsedResidents, mergeMode = 'merge', metadata = {}) {
+      // 1. インポート実行前の状態をスナップショットとして内部記録
+      if (!this.data.snapshots) this.data.snapshots = [];
+
+      const currentSnapshot = {
+        id: 'snap_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        sourceFileName: metadata.fileName || 'ワイズマン帳票・Excel',
+        mergeMode: mergeMode,
+        previousResidentCount: this.data.residents.length,
+        incomingResidentCount: parsedResidents.length,
+        residentsBackup: JSON.parse(JSON.stringify(this.data.residents)),
+        diffSummary: metadata.summary || null
+      };
+
+      // 最大50件まで履歴を保持
+      this.data.snapshots.unshift(currentSnapshot);
+      if (this.data.snapshots.length > 50) {
+        this.data.snapshots.pop();
+      }
+
+      // 2. 画面・現在のデータへの反映（マージまたは上書き）
       if (mergeMode === 'overwrite') {
-        // 完全上書き
         this.data.residents = parsedResidents;
       } else {
-        // 差分マージ（部屋番号をキーにする）
         parsedResidents.forEach(newRes => {
           const idx = this.data.residents.findIndex(r => String(r.room) === String(newRes.room));
           if (idx >= 0) {
-            this.data.residents[idx] = { ...this.data.residents[idx], ...newRes };
+            // 各入居者内にも過去履歴を内部保存（循環参照防止）
+            const { _history: oldHist, ...cleanCurrent } = this.data.residents[idx];
+            const updatedHist = Array.isArray(oldHist) ? [...oldHist] : [];
+            updatedHist.unshift({
+              updatedAt: new Date().toISOString(),
+              source: metadata.fileName || 'Wiseman Import',
+              previousState: cleanCurrent
+            });
+            if (updatedHist.length > 20) updatedHist.pop();
+
+            this.data.residents[idx] = { ...this.data.residents[idx], ...newRes, _history: updatedHist };
           } else {
             this.data.residents.push(newRes);
           }
         });
       }
 
+      // 3. マスタの自動補完（新しく取り込まれた訪問医や用具をマスタに追加）
+      parsedResidents.forEach(r => {
+        if (r.doctor) this.addMasterItem('doctor', r.doctor);
+        if (r.dental) this.addMasterItem('dental', r.dental);
+        if (r.equipment) this.addMasterItem('equipment', r.equipment);
+        if (r.foodMain) this.addMasterItem('foodMain', r.foodMain);
+        if (r.foodSide) this.addMasterItem('foodSide', r.foodSide);
+      });
+
       this.data.residents.sort((a, b) => parseInt(a.room, 10) - parseInt(b.room, 10));
+      this.saveData();
+    }
+
+    getSnapshots() {
+      return this.data.snapshots || [];
+    }
+
+    restoreSnapshot(snapshotId) {
+      const snap = (this.data.snapshots || []).find(s => s.id === snapshotId);
+      if (!snap || !snap.residentsBackup) {
+        throw new Error('指定された過去スナップショットが見つかりません');
+      }
+
+      // 現在の状態も直前バックアップとして退避
+      this.data.snapshots.unshift({
+        id: 'snap_' + Date.now(),
+        timestamp: new Date().toISOString(),
+        sourceFileName: `復元直前の状態 (復元元: ${snap.sourceFileName})`,
+        mergeMode: 'restore_backup',
+        previousResidentCount: this.data.residents.length,
+        incomingResidentCount: snap.residentsBackup.length,
+        residentsBackup: JSON.parse(JSON.stringify(this.data.residents))
+      });
+
+      this.data.residents = JSON.parse(JSON.stringify(snap.residentsBackup));
       this.saveData();
     }
 

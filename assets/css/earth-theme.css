@@ -542,12 +542,43 @@ body {
   accent-color: var(--earth-green);
 }
 
-/* 列ヘッダー操作ボタン */
+/* 列ヘッダー操作＆ドラッグ並び替え */
 .col-header-cell {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 6px;
+  position: relative;
+}
+
+.drag-handle {
+  color: #94a3b8;
+  cursor: grab;
+  font-size: 14px;
+  user-select: none;
+  padding: 2px 4px;
+  line-height: 1;
+  border-radius: 4px;
+}
+.drag-handle:active {
+  cursor: grabbing;
+}
+.drag-handle:hover {
+  color: var(--earth-green);
+  background: var(--earth-green-light);
+}
+
+.data-table th.is-dragging {
+  opacity: 0.4;
+  background-color: var(--earth-green-light);
+}
+
+.data-table th.drag-over-left {
+  border-left: 3px solid var(--earth-green) !important;
+}
+
+.data-table th.drag-over-right {
+  border-right: 3px solid var(--earth-green) !important;
 }
 
 .btn-remove-col {
@@ -564,6 +595,101 @@ body {
 .btn-remove-col:hover {
   color: var(--earth-danger);
   background-color: #fee2e2;
+}
+
+/* マスタ管理UI */
+.master-section {
+  background: #ffffff;
+  border: 1px solid var(--earth-border);
+  border-radius: 14px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+}
+
+.master-title {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--earth-ink);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.master-tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.master-tag {
+  background: var(--earth-green-light);
+  color: var(--earth-green-dark);
+  font-weight: 700;
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid rgba(36, 125, 27, 0.2);
+}
+
+.master-tag-remove {
+  background: none;
+  border: none;
+  color: var(--earth-green-dark);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: bold;
+  padding: 0 2px;
+  line-height: 1;
+}
+.master-tag-remove:hover {
+  color: var(--earth-danger);
+}
+
+.master-add-form {
+  display: flex;
+  gap: 8px;
+}
+
+/* スナップショット履歴UI */
+.snapshot-card {
+  background: #ffffff;
+  border: 1px solid var(--earth-border);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.snapshot-card:hover {
+  border-color: var(--earth-green);
+  box-shadow: var(--shadow-sm);
+}
+
+.snapshot-info {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.snapshot-time {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  color: var(--earth-ink);
+}
+
+.snapshot-file {
+  font-size: 12px;
+  color: var(--earth-muted);
 }
 
 /* バッジとタグ */

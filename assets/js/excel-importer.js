@@ -287,7 +287,10 @@
      */
     applyImport(mergeMode = 'merge') {
       if (this.currentParsedData && this.currentParsedData.length > 0) {
-        window.DataStore.importFromExcel(this.currentParsedData, mergeMode);
+        window.DataStore.importFromExcel(this.currentParsedData, mergeMode, {
+          fileName: this.currentFileName || 'ワイズマン帳票・Excel',
+          summary: this.diffSummary
+        });
         return true;
       }
       return false;

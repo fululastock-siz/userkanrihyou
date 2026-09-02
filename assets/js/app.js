@@ -193,8 +193,11 @@
     elements.statEarlyCount.innerHTML = `${stats.earlyCount} <span class="summary-card-unit">名</span>`;
   }
 
+  // ドラッグ中の一時状態
+  let draggedColKey = null;
+
   /**
-   * 全体管理表のヘッダーおよびボディの描画（インライン直接編集対応）
+   * 全体管理表のヘッダーおよびボディの描画（ドラッグ移動＆マスタ選択式対応）
    */
   function renderAllResidentsTable() {
     const thead = document.getElementById('resident-table-head');
@@ -202,11 +205,12 @@
     if (!tbody || !thead) return;
 
     const columns = window.DataStore.getColumns();
+    const masters = window.DataStore.getMasters();
 
-    // 1. ヘッダーの描画
+    // 1. ヘッダーの描画（ドラッグ並び替え対応）
     thead.innerHTML = `
       <tr>
-        ${columns.map(col => {
+        ${columns.map((col, idx) => {
           const isSortable = col.sortable;
           const sortIndicator = isSortable ? (state.sortField === col.key ? (state.sortAsc ? ' 🔼' : ' 🔽') : ' ↕') : '';
           const removeBtn = !col.fixed 
@@ -214,9 +218,10 @@
             : '';
 
           return `
-            <th class="${isSortable ? 'sortable' : ''}" data-sort="${col.key}" style="width: ${col.width || 'auto'};">
+            <th class="${isSortable ? 'sortable' : ''}" data-col-key="${col.key}" data-sort="${col.key}" draggable="true" style="width: ${col.width || 'auto'}; cursor: move;" title="クリックで並び替え、長押し/ドラッグで列の移動">
               <div class="col-header-cell">
-                <span>${col.label}${sortIndicator}</span>
+                <span class="drag-handle" title="ドラッグして列を移動">⠿</span>
+                <span style="flex:1; margin: 0 4px;">${col.label}${sortIndicator}</span>
                 ${removeBtn}
               </div>
             </th>
@@ -226,9 +231,12 @@
       </tr>
     `;
 
-    // ヘッダークリックのソートイベント
-    thead.querySelectorAll('th.sortable').forEach(th => {
-      th.addEventListener('click', () => {
+    // ヘッダーのドラッグ＆ドロップイベント設定
+    const thList = thead.querySelectorAll('th[data-col-key]');
+    thList.forEach(th => {
+      // ソートクリック
+      th.addEventListener('click', (e) => {
+        if (e.target.closest('.drag-handle') || e.target.closest('.btn-remove-col')) return;
         const field = th.dataset.sort;
         if (state.sortField === field) {
           state.sortAsc = !state.sortAsc;
@@ -237,6 +245,52 @@
           state.sortAsc = true;
         }
         renderAllResidentsTable();
+      });
+
+      // ドラッグ開始
+      th.addEventListener('dragstart', (e) => {
+        draggedColKey = th.dataset.colKey;
+        th.classList.add('is-dragging');
+        e.dataTransfer.effectAllowed = 'move';
+        e.dataTransfer.setData('text/plain', draggedColKey);
+      });
+
+      // ドラッグ中
+      th.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        const rect = th.getBoundingClientRect();
+        const midpoint = rect.left + rect.width / 2;
+        if (e.clientX < midpoint) {
+          th.classList.add('drag-over-left');
+          th.classList.remove('drag-over-right');
+        } else {
+          th.classList.add('drag-over-right');
+          th.classList.remove('drag-over-left');
+        }
+      });
+
+      th.addEventListener('dragleave', () => {
+        th.classList.remove('drag-over-left', 'drag-over-right');
+      });
+
+      // ドロップ（列の並び替え確定）
+      th.addEventListener('drop', (e) => {
+        e.preventDefault();
+        const targetKey = th.dataset.colKey;
+        th.classList.remove('drag-over-left', 'drag-over-right', 'is-dragging');
+
+        if (draggedColKey && targetKey && draggedColKey !== targetKey) {
+          window.DataStore.reorderColumns(draggedColKey, targetKey);
+          showToast(`列の並び順を更新しました`);
+          renderAllResidentsTable();
+        }
+        draggedColKey = null;
+      });
+
+      th.addEventListener('dragend', () => {
+        thList.forEach(t => t.classList.remove('is-dragging', 'drag-over-left', 'drag-over-right'));
+        draggedColKey = null;
       });
     });
 
@@ -264,7 +318,7 @@
         if (col.key === 'room') {
           return `
             <td>
-              <input type="text" class="cell-input font-num" style="font-weight: 800; width: 60px;" value="${val}"
+              <input type="text" class="cell-input font-num" style="font-weight: 800; width: 65px;" value="${val}"
                 onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)" placeholder="号室">
             </td>
           `;
@@ -280,7 +334,7 @@
           `;
         }
 
-        // 介護度
+        // 介護度（選択式）
         if (col.key === 'careLevel') {
           return `
             <td>
@@ -296,7 +350,7 @@
           `;
         }
 
-        // エアコン
+        // エアコン（選択式）
         if (col.key === 'airConditioner') {
           return `
             <td style="text-align: center;">
@@ -309,7 +363,7 @@
           `;
         }
 
-        // 早出し
+        // 早出し（チェックボックス）
         if (col.key === 'earlyFood') {
           return `
             <td style="text-align: center;">
@@ -319,32 +373,53 @@
           `;
         }
 
-        // とろみ
+        // とろみ（選択式）
         if (col.key === 'foodThick') {
+          const thickOptions = masters.foodThick || ['無し', 'あり'];
           return `
             <td>
               <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
                 <option value="" ${!val ? 'selected' : ''}>-</option>
-                <option value="あり" ${val === 'あり' ? 'selected' : ''}>あり</option>
-                <option value="無し" ${val === '無し' ? 'selected' : ''}>無し</option>
+                ${thickOptions.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}
               </select>
             </td>
           `;
         }
 
-        // 動的セレクトタイプ
-        if (col.type === 'select' && Array.isArray(col.options)) {
+        // 訪問医・口腔衛生・福祉用具・主食・副食などのマスタ選択式項目
+        const masterKey = col.masterKey || col.key;
+        if (masters[masterKey] && Array.isArray(masters[masterKey])) {
+          const masterOptions = [...masters[masterKey]];
+          // 現在値がマスタに無ければ選択肢に含める
+          if (val && !masterOptions.includes(val)) {
+            masterOptions.unshift(val);
+          }
+
           return `
             <td>
               <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
                 <option value="">-</option>
-                ${col.options.map(opt => `<option value="${opt}" ${String(val) === String(opt) ? 'selected' : ''}>${opt}</option>`).join('')}
+                ${masterOptions.map(opt => `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`).join('')}
               </select>
             </td>
           `;
         }
 
-        // 動的チェックボックス
+        // カスタム選択式
+        if (col.type === 'select' && Array.isArray(col.options)) {
+          const optList = [...col.options];
+          if (val && !optList.includes(val)) optList.unshift(val);
+          return `
+            <td>
+              <select class="cell-select" onchange="window.EarthApp.onCellChange('${r.id}', '${col.key}', this.value)">
+                <option value="">-</option>
+                ${optList.map(opt => `<option value="${opt}" ${String(val) === String(opt) ? 'selected' : ''}>${opt}</option>`).join('')}
+              </select>
+            </td>
+          `;
+        }
+
+        // カスタムチェックボックス
         if (col.type === 'checkbox') {
           return `
             <td style="text-align: center;">
@@ -686,6 +761,92 @@
   }
 
   /**
+   * 項目マスタ管理モーダルの描画
+   */
+  function renderMasterManager() {
+    const container = document.getElementById('master-sections-container');
+    if (!container) return;
+
+    const masters = window.DataStore.getMasters();
+    const masterLabels = {
+      doctor: '🏥 訪問医（クリニック名・医師名）',
+      dental: '🦷 口腔衛生（歯科医院名）',
+      equipment: '♿ 福祉用具（車椅子・歩行器等）',
+      foodMain: '🍚 主食形態（米飯・全粥・パン等）',
+      foodSide: '🥗 副食形態（普通・一口・刻み等）',
+      foodThick: '🍵 とろみ（あり・無し等）',
+      airConditioner: '❄️ エアコン（〇・×等）'
+    };
+
+    container.innerHTML = Object.entries(masters).map(([key, items]) => {
+      const label = masterLabels[key] || `📋 ${key}`;
+      return `
+        <div class="master-section">
+          <div class="master-title">
+            <span>${label}</span>
+            <small style="color: var(--earth-muted); font-weight: normal;">登録数: ${items.length} 件</small>
+          </div>
+          <div class="master-tag-list">
+            ${items.map(item => `
+              <span class="master-tag">
+                ${item}
+                <button type="button" class="master-tag-remove" onclick="window.EarthApp.removeMaster('${key}', '${item}')" title="削除">×</button>
+              </span>
+            `).join('')}
+          </div>
+          <form class="master-add-form" onsubmit="event.preventDefault(); window.EarthApp.addMaster('${key}', this.itemValue.value); this.reset();">
+            <input type="text" name="itemValue" class="form-input" style="padding: 6px 12px; font-size: 13px;" required placeholder="新しい選択肢を入力...">
+            <button type="submit" class="btn btn-outline btn-sm" style="white-space: nowrap;">➕ 追加</button>
+          </form>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /**
+   * 取り込み履歴（スナップショット）モーダルの描画
+   */
+  function renderSnapshotHistory() {
+    const container = document.getElementById('snapshot-list-container');
+    if (!container) return;
+
+    const snapshots = window.DataStore.getSnapshots();
+
+    if (snapshots.length === 0) {
+      container.innerHTML = `
+        <div style="text-align: center; padding: 36px 20px; color: var(--earth-muted); background: #fafbfc; border-radius: 12px; border: 1px dashed var(--earth-border);">
+          <div style="font-size: 32px; margin-bottom: 8px;">📂</div>
+          <strong>過去の取り込み履歴はありません</strong>
+          <p style="font-size: 12px; margin-top: 4px;">ワイズマン等のExcelを取り込むと、取り込み前の状態が自動的にここに保存されます。</p>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = snapshots.map(snap => {
+      const timeStr = new Date(snap.timestamp).toLocaleString('ja-JP');
+      const diffText = snap.diffSummary 
+        ? `新規: ${snap.diffSummary.newCount}件 / 更新: ${snap.diffSummary.updateCount}件 / 退去: ${snap.diffSummary.leaveCount}件` 
+        : `バックアップ件数: ${snap.previousResidentCount}名`;
+
+      return `
+        <div class="snapshot-card">
+          <div class="snapshot-info">
+            <div class="snapshot-time">🕒 ${timeStr}</div>
+            <div class="snapshot-file">📁 取り込み元: <strong>${snap.sourceFileName}</strong> (${snap.mergeMode === 'overwrite' ? '完全上書き' : '差分マージ'})</div>
+            <div style="font-size: 11.5px; color: var(--earth-green-dark); font-weight: 700; margin-top: 2px;">
+              📊 ${diffText}
+            </div>
+          </div>
+          <button class="btn btn-outline btn-sm" onclick="window.EarthApp.restoreSnapshot('${snap.id}')" title="この取り込み直前のデータ状態に戻します">
+            🔄 この状態に復元
+          </button>
+        </div>
+      `;
+    }).join('');
+  }
+
+  /**
    * イベントリスナーのセットアップ
    */
   function setupEventListeners() {
@@ -720,19 +881,25 @@
       renderAll();
     });
 
-    // ソートヘッダー
-    document.querySelectorAll('.data-table th.sortable').forEach(th => {
-      th.addEventListener('click', () => {
-        const field = th.dataset.sort;
-        if (state.sortField === field) {
-          state.sortAsc = !state.sortAsc;
-        } else {
-          state.sortField = field;
-          state.sortAsc = true;
-        }
-        renderAll();
+    // 項目マスタ管理モーダル開閉
+    const btnOpenMasterModal = document.getElementById('btn-open-master-modal');
+    const masterModal = document.getElementById('master-manager-modal');
+    if (btnOpenMasterModal && masterModal) {
+      btnOpenMasterModal.addEventListener('click', () => {
+        renderMasterManager();
+        masterModal.classList.add('active');
       });
-    });
+    }
+
+    // 取り込み履歴モーダル開閉
+    const btnOpenSnapshotModal = document.getElementById('btn-open-snapshot-modal');
+    const snapshotModal = document.getElementById('snapshot-history-modal');
+    if (btnOpenSnapshotModal && snapshotModal) {
+      btnOpenSnapshotModal.addEventListener('click', () => {
+        renderSnapshotHistory();
+        snapshotModal.classList.add('active');
+      });
+    }
 
     // スプレッドシート連携モーダル開閉
     const sheetSyncModal = document.getElementById('sheet-sync-modal');
@@ -820,7 +987,7 @@
       }
     });
 
-    // ドラッグ＆ドロップ
+    // ドラッグ＆ドロップ（ワイズマン帳票取り込み）
     const dropzone = elements.dropzone;
     if (dropzone) {
       dropzone.addEventListener('click', () => elements.excelFileInput.click());
@@ -987,6 +1154,7 @@
     // データストア購読
     window.DataStore.subscribe(() => {
       renderStatistics();
+      renderAllResidentsTable();
       if (state.activeTab === 'floor') renderFloorMap();
       else if (state.activeTab === 'meal') renderMealView();
       else if (state.activeTab === 'medical') renderMedicalView();
@@ -1018,13 +1186,53 @@
   }
 
   /**
+   * マスタ項目追加
+   */
+  function addMaster(key, value) {
+    if (value && value.trim()) {
+      window.DataStore.addMasterItem(key, value.trim());
+      showToast(`マスタに「${value.trim()}」を追加しました`);
+      renderMasterManager();
+      renderAllResidentsTable();
+    }
+  }
+
+  /**
+   * マスタ項目削除
+   */
+  function removeMaster(key, value) {
+    if (confirm(`マスタから「${value}」を削除しますか？`)) {
+      window.DataStore.removeMasterItem(key, value);
+      showToast(`マスタから「${value}」を削除しました`);
+      renderMasterManager();
+      renderAllResidentsTable();
+    }
+  }
+
+  /**
+   * 過去スナップショットの復元
+   */
+  function restoreSnapshot(snapshotId) {
+    if (confirm('指定された過去の取り込み直前のデータ状態に復元しますか？（現在の状態もバックアップとして記録されます）')) {
+      try {
+        window.DataStore.restoreSnapshot(snapshotId);
+        closeModal(document.getElementById('snapshot-history-modal'));
+        showToast('過去データを正常に復元しました！');
+        renderAll();
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    }
+  }
+
+  /**
    * 編集モーダルを開く
    */
   function openEditModal(residentId) {
     const res = window.DataStore.getResidentById(residentId);
     if (!res) return;
 
-    elements.editModalTitle.textContent = `${res.room}号室 入居者情報編集`;
+    elements.editModalTitle.textContent = `${res.room}号室 入居者情報詳細`;
     const form = elements.residentForm;
     form.id.value = res.id;
     form.room.value = res.room;
@@ -1078,8 +1286,12 @@
 
   // グローバル公開
   window.EarthApp = {
+    switchTab,
     onCellChange,
     removeColumn,
+    addMaster,
+    removeMaster,
+    restoreSnapshot,
     openEditModal,
     openMoveOutModal,
     closeModal,
