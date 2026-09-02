@@ -74,8 +74,8 @@
 
   // カラムの初期デフォルト定義
   const DEFAULT_COLUMNS = [
-    { key: 'room', label: '部屋', type: 'text', fixed: true, sortable: true, width: '85px' },
-    { key: 'name', label: '名前 (フルネーム)', type: 'text', fixed: true, sortable: true, width: '135px' },
+    { key: 'room', label: '部屋', type: 'text', fixed: true, sortable: true, width: '80px' },
+    { key: 'name', label: '名前 (フルネーム)', type: 'text', fixed: true, sortable: true, width: '140px' },
     { key: 'careLevel', label: '介護度', type: 'select', masterKey: 'careLevel', options: ['', '介1', '介2', '介3', '介4', '介5', '自立', '支1', '支2'], sortable: true, width: '95px' },
     { key: 'age', label: '年齢', type: 'number', sortable: true, width: '75px' },
     { key: 'birthday', label: '生年月日', type: 'text', sortable: false, width: '110px' },
