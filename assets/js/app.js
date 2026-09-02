@@ -1433,7 +1433,8 @@
         if (gasInput) {
           const url = gasInput.value.trim();
           window.GoogleSheetSync.saveSettings({ gasWebAppUrl: url });
-          showToast('GAS ウェブアプリURLを保存しました');
+          window.GoogleSheetSync.initAutoSync();
+          showToast('GAS クラウド自動共有URLを保存し、同期を開始しました！', 'success');
         }
       });
     }
@@ -1442,9 +1443,9 @@
     if (btnSyncPull) {
       btnSyncPull.addEventListener('click', async () => {
         try {
-          showToast('スプレッドシートからデータを取得中...', 'info');
+          showToast('クラウドから最新データを取得中...', 'info');
           const residents = await window.GoogleSheetSync.pullFromSpreadsheet();
-          showToast(`スプレッドシートから ${residents.length} 件のデータを同期しました！`);
+          showToast(`クラウドから ${residents.length} 件の最新データを同期しました！`, 'success');
           renderAll();
         } catch (err) {
           showToast(err.message, 'error');
@@ -1456,9 +1457,9 @@
     if (btnSyncPush) {
       btnSyncPush.addEventListener('click', async () => {
         try {
-          showToast('スプレッドシートへデータを送信中...', 'info');
+          showToast('クラウドへデータを送信中...', 'info');
           const res = await window.GoogleSheetSync.pushToSpreadsheet();
-          showToast(res.message || 'スプレッドシートを更新しました！');
+          showToast(res.message || 'クラウドへの保存が完了しました！', 'success');
         } catch (err) {
           showToast(err.message, 'error');
         }
@@ -1495,6 +1496,7 @@
     elements.btnResetData.addEventListener('click', () => {
       if (confirm('初期サンプルデータにリセットしますか？ 現在の編集内容は上書きされます。')) {
         window.DataStore.resetToDefault();
+        window.GoogleSheetSync.triggerAutoPush();
         showToast('データを初期化しました');
       }
     });
@@ -1547,6 +1549,7 @@
       if (success) {
         closeModal(elements.diffPreviewModal);
         showToast('データのインポートと更新が完了しました！');
+        window.GoogleSheetSync.triggerAutoPush();
         switchTab('all');
       }
     });
@@ -1639,6 +1642,7 @@
       };
 
       window.DataStore.saveResident(residentObj);
+      window.GoogleSheetSync.triggerAutoPush();
       closeModal(elements.residentEditModal);
       showToast(`${roomNum}号室 (${residentObj.name || '空室'}) の情報を更新しました`);
     });
@@ -1652,6 +1656,7 @@
       const note = elements.moveOutForm.note.value;
 
       window.DataStore.moveOutResident(resId, { eventType, eventDate, note });
+      window.GoogleSheetSync.triggerAutoPush();
       closeModal(elements.moveOutModal);
       showToast('退去・異動処理を記録し、居室を空室に更新しました');
     });
@@ -1681,6 +1686,7 @@
    */
   function onCellChange(residentId, fieldKey, value) {
     window.DataStore.updateResidentField(residentId, fieldKey, value);
+    window.GoogleSheetSync.triggerAutoPush();
     showToast(`更新しました (${fieldKey}: ${value !== '' ? value : '空欄'})`);
   }
 
@@ -1858,10 +1864,24 @@
     if (menu) menu.classList.remove('show');
   }
 
+  function updateSyncBadge(statusInfo) {
+    const badge = document.getElementById('header-sync-badge');
+    if (!badge) return;
+    badge.className = `header-sync-badge ${statusInfo.class || ''}`;
+    badge.innerHTML = statusInfo.label;
+    badge.title = statusInfo.tooltip;
+  }
+
   // アプリケーション初期化
   function init() {
     setupEventListeners();
     renderAll();
+
+    // Googleスプレッドシート完全自動共有エンジンの初期化
+    if (window.GoogleSheetSync) {
+      window.GoogleSheetSync.onStatusChange(updateSyncBadge);
+      window.GoogleSheetSync.initAutoSync();
+    }
 
     // ドロップダウンメニュー外クリックで閉じる
     document.addEventListener('click', (e) => {

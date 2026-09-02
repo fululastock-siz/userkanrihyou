@@ -41,6 +41,9 @@
         </div>
 
         <div class="header-actions">
+          <button type="button" class="header-sync-badge badge-sync-unconfigured" id="header-sync-badge" onclick="window.EarthApp.openSheetSyncModal()" title="クリックしてクラウド自動共有を設定">
+            ☁️ 自動共有設定
+          </button>
           <button class="btn btn-primary btn-sm" id="btn-header-wiseman-import" onclick="window.EarthApp.switchTab('import')" title="ワイズマンのExcel/CSVを取り込んでデータを更新">
             📥 ワイズマン読込
           </button>
@@ -762,20 +765,22 @@
     </div>
   </div>
 
-  <!-- Googleスプレッドシート連携モーダル -->
+  <!-- Googleスプレッドシート連携・自動クラウド共有設定モーダル -->
   <div class="modal-overlay" id="sheet-sync-modal">
     <div class="modal-card" style="width: min(720px, 96vw);">
       <div class="modal-header">
-        <h2>📊 Googleスプレッドシート連携・同期</h2>
+        <h2>☁️ クラウド自動共有（全PCリアルタイム同期）設定</h2>
         <button class="modal-close" onclick="window.EarthApp.closeModal(document.getElementById('sheet-sync-modal'))">&times;</button>
       </div>
       <div class="modal-body">
-        <!-- 既存スプレッドシートへのリンク -->
+        <!-- 概要案内 -->
         <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
           <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
             <div>
-              <strong style="color: #166534; font-size: 14px;">現在連携中のGoogleスプレッドシート</strong>
-              <div style="font-size: 12px; color: #15803d; margin-top: 2px;">EARTH CARE GROUP 入居者管理表</div>
+              <strong style="color: #166534; font-size: 14px;">🟢 自動共有エンジンについて</strong>
+              <div style="font-size: 12px; color: #15803d; margin-top: 2px;">
+                URLを設定すると、<strong>「編集時の自動保存」「起動時の自動読込」「30秒ごとの自動更新」</strong> が完全自動で作動し、全PC・スタッフ間で常に最新データが共有されます。
+              </div>
             </div>
             <a href="https://docs.google.com/spreadsheets/d/1fjFlkIc29WlkZxYIP3hRNXRMYPW7MQpqcgCH3FjHnkY/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="background:#fff; border-color:#86efac; color:#166534;">
               🔗 スプレッドシートを開く ↗
@@ -783,31 +788,38 @@
           </div>
         </div>
 
-        <!-- クイックアクション -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px;">
-          <button class="btn btn-primary" id="btn-sync-pull" style="padding: 14px; font-size: 13px;">
-            🔄 スプレッドシートから最新を取得
-          </button>
-          <button class="btn btn-gold" id="btn-sync-push" style="padding: 14px; font-size: 13px;">
-            ☁️ スプレッドシートへ保存・更新
-          </button>
-          <button class="btn btn-outline" id="btn-copy-tsv" style="padding: 14px; font-size: 13px;">
-            📋 貼り付け用データをコピー (TSV)
-          </button>
+        <!-- かんたん3ステップ設定手順 -->
+        <div style="background-color: #f8fafc; border-radius: 12px; padding: 18px; border: 1px solid var(--earth-border); margin-bottom: 20px;">
+          <h3 style="font-size: 14px; font-weight: 800; color: var(--earth-ink); margin-bottom: 10px;">📋 かんたん設定手順（初回のみ・3分）</h3>
+          <ol style="font-size: 12.5px; color: var(--earth-ink); line-height: 1.7; padding-left: 20px; margin: 0;">
+            <li>施設のGoogleスプレッドシートを開き、上部メニューの <strong>「拡張機能」 ➔ 「Apps Script」</strong> をクリックします。</li>
+            <li>エディタに同梱のスクリプトコードを貼り付けて保存します。</li>
+            <li>右上の <strong>「デプロイ」 ➔ 「新しいデプロイ」</strong> を選択し、種類の歯車から「ウェブアプリ」を選択（アクセスできるユーザー: <strong>全員</strong>）してデプロイします。</li>
+            <li>発行された <strong>「ウェブアプリのURL」</strong> を下の入力欄に貼り付けて「設定して自動同期を開始」をクリックしてください。</li>
+          </ol>
         </div>
 
-        <!-- GAS設定セクション -->
-        <div style="background-color: #fafbfc; border-radius: 12px; padding: 18px; border: 1px solid var(--earth-border);">
-          <h3 style="font-size: 14px; font-weight: 800; color: var(--earth-ink); margin-bottom: 8px;">⚙️ Google Apps Script (GAS) Web API 設定</h3>
-          <p style="font-size: 12px; color: var(--earth-muted); margin-bottom: 12px;">
-            スプレッドシートの「拡張機能 > Apps Script」に同梱の <code>gas/Code.gs</code> をデプロイして発行されたウェブアプリURLを入力すると、双方向の自動同期が可能になります。
-          </p>
-          <div class="form-group">
-            <label class="form-label" style="font-size: 12px;">GAS ウェブアプリURL</label>
-            <input type="url" id="gas-web-app-url" class="form-input" placeholder="https://script.google.com/macros/s/.../exec">
+        <!-- GAS URL 入力フォーム -->
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label class="form-label" style="font-weight: 800; font-size: 13px;">GAS ウェブアプリURL</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="url" id="gas-web-app-url" class="form-input" style="flex:1;" placeholder="https://script.google.com/macros/s/.../exec">
+            <button class="btn btn-primary" id="btn-save-gas-url" style="white-space: nowrap; font-size: 13px;">
+              💾 設定して自動同期を開始
+            </button>
           </div>
-          <button class="btn btn-outline btn-sm" id="btn-save-gas-url" style="margin-top: 10px;">
-            設定を保存
+        </div>
+
+        <!-- 手動アクション -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 10px;">
+          <button class="btn btn-outline btn-sm" id="btn-sync-pull" style="padding: 10px; font-size: 12.5px;">
+            🔄 今すぐクラウドから取得
+          </button>
+          <button class="btn btn-outline btn-sm" id="btn-sync-push" style="padding: 10px; font-size: 12.5px;">
+            ☁️ 今すぐクラウドへ保存
+          </button>
+          <button class="btn btn-outline btn-sm" id="btn-copy-tsv" style="padding: 10px; font-size: 12.5px;">
+            📋 貼り付け用TSVをコピー
           </button>
         </div>
       </div>
@@ -942,11 +954,11 @@
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_12"></script>
-  <script src="assets/js/excel-importer.js?v=20260902_12"></script>
-  <script src="assets/js/excel-exporter.js?v=20260902_12"></script>
-  <script src="assets/js/google-sheet-sync.js?v=20260902_12"></script>
-  <script src="assets/js/app.js?v=20260902_12"></script>
+  <script src="assets/js/data-store.js?v=20260902_13"></script>
+  <script src="assets/js/excel-importer.js?v=20260902_13"></script>
+  <script src="assets/js/excel-exporter.js?v=20260902_13"></script>
+  <script src="assets/js/google-sheet-sync.js?v=20260902_13"></script>
+  <script src="assets/js/app.js?v=20260902_13"></script>
 
   <script>
     // 印刷日時
