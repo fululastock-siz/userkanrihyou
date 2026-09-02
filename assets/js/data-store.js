@@ -306,6 +306,10 @@
           floorMemo: '',
           floorEvents: [],
           purchaseRequest: false,
+          purchaseItem: '',
+          purchaseQuantity: '',
+          purchaseDesiredDate: '',
+          purchaseNote: '',
           cleaningStatus: '',
           plannedResidentName: '',
           plannedEntryDate: '',
@@ -359,6 +363,10 @@
               if (typeof r.floorMemo !== 'string') r.floorMemo = '';
               if (!Array.isArray(r.floorEvents)) r.floorEvents = [];
               r.purchaseRequest = Boolean(r.purchaseRequest);
+              if (typeof r.purchaseItem !== 'string') r.purchaseItem = '';
+              if (typeof r.purchaseQuantity !== 'string') r.purchaseQuantity = '';
+              if (typeof r.purchaseDesiredDate !== 'string') r.purchaseDesiredDate = '';
+              if (typeof r.purchaseNote !== 'string') r.purchaseNote = '';
               if (typeof r.cleaningStatus !== 'string') r.cleaningStatus = '';
               if (typeof r.plannedResidentName !== 'string') r.plannedResidentName = '';
               if (typeof r.plannedEntryDate !== 'string') r.plannedEntryDate = '';
@@ -397,6 +405,10 @@
         r.floorMemo = '';
         r.floorEvents = [];
         r.purchaseRequest = false;
+        r.purchaseItem = '';
+        r.purchaseQuantity = '';
+        r.purchaseDesiredDate = '';
+        r.purchaseNote = '';
         r.cleaningStatus = '';
         r.plannedResidentName = '';
         r.plannedEntryDate = '';
@@ -503,6 +515,10 @@
           floorMemo: typeof resident.floorMemo === 'string' ? resident.floorMemo : '',
           floorEvents: Array.isArray(resident.floorEvents) ? resident.floorEvents : [],
           purchaseRequest: Boolean(resident.purchaseRequest),
+          purchaseItem: typeof resident.purchaseItem === 'string' ? resident.purchaseItem : '',
+          purchaseQuantity: typeof resident.purchaseQuantity === 'string' ? resident.purchaseQuantity : '',
+          purchaseDesiredDate: typeof resident.purchaseDesiredDate === 'string' ? resident.purchaseDesiredDate : '',
+          purchaseNote: typeof resident.purchaseNote === 'string' ? resident.purchaseNote : '',
           cleaningStatus: typeof resident.cleaningStatus === 'string' ? resident.cleaningStatus : '',
           plannedResidentName: typeof resident.plannedResidentName === 'string' ? resident.plannedResidentName : '',
           plannedEntryDate: typeof resident.plannedEntryDate === 'string' ? resident.plannedEntryDate : '',
@@ -823,6 +839,11 @@
       if (Object.prototype.hasOwnProperty.call(changes, 'purchaseRequest')) {
         resident.purchaseRequest = Boolean(changes.purchaseRequest);
       }
+      ['purchaseItem', 'purchaseQuantity', 'purchaseDesiredDate', 'purchaseNote'].forEach(field => {
+        if (Object.prototype.hasOwnProperty.call(changes, field)) {
+          resident[field] = String(changes[field] || '').trim();
+        }
+      });
       if (Object.prototype.hasOwnProperty.call(changes, 'cleaningStatus')) {
         const allowed = ['', '未清掃', '清掃中', '清掃済'];
         resident.cleaningStatus = allowed.includes(changes.cleaningStatus) ? changes.cleaningStatus : '';
@@ -929,6 +950,10 @@
         res.floorMemo = "";
         res.floorEvents = [];
         res.purchaseRequest = false;
+        res.purchaseItem = "";
+        res.purchaseQuantity = "";
+        res.purchaseDesiredDate = "";
+        res.purchaseNote = "";
         res.cleaningStatus = "未清掃";
         this.saveData();
       }
@@ -1175,6 +1200,10 @@
           floorMemo: resident.floorMemo || '',
           floorEvents: Array.isArray(resident.floorEvents) ? resident.floorEvents : [],
           purchaseRequest: Boolean(resident.purchaseRequest),
+          purchaseItem: resident.purchaseItem || '',
+          purchaseQuantity: resident.purchaseQuantity || '',
+          purchaseDesiredDate: resident.purchaseDesiredDate || '',
+          purchaseNote: resident.purchaseNote || '',
           cleaningStatus: resident.cleaningStatus || '',
           plannedResidentName: resident.plannedResidentName || '',
           plannedEntryDate: resident.plannedEntryDate || '',
@@ -1203,6 +1232,10 @@
             floorMemo: '',
             floorEvents: [],
             purchaseRequest: false,
+            purchaseItem: '',
+            purchaseQuantity: '',
+            purchaseDesiredDate: '',
+            purchaseNote: '',
             cleaningStatus: '',
             plannedResidentName: '',
             plannedEntryDate: '',

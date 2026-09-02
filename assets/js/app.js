@@ -93,6 +93,18 @@
     plannedResidentName: document.getElementById('planned-resident-name'),
     plannedEntryDate: document.getElementById('planned-entry-date'),
     plannedResidentNote: document.getElementById('planned-resident-note'),
+    floorPurchaseRequest: document.getElementById('floor-purchase-request'),
+    purchaseComposerFields: document.getElementById('purchase-composer-fields'),
+    purchaseItem: document.getElementById('purchase-item'),
+    purchaseQuantity: document.getElementById('purchase-quantity'),
+    purchaseDesiredDate: document.getElementById('purchase-desired-date'),
+    purchaseNote: document.getElementById('purchase-note'),
+    btnGeneratePurchaseEmail: document.getElementById('btn-generate-purchase-email'),
+    btnGeneratePurchasePhone: document.getElementById('btn-generate-purchase-phone'),
+    purchaseMessageOutputWrap: document.getElementById('purchase-message-output-wrap'),
+    purchaseMessageTitle: document.getElementById('purchase-message-title'),
+    purchaseMessageOutput: document.getElementById('purchase-message-output'),
+    btnCopyPurchaseMessage: document.getElementById('btn-copy-purchase-message'),
 
     // 退去モーダル
     moveOutModal: document.getElementById('move-out-modal'),
@@ -690,7 +702,7 @@
               <span class="room-card-num">${escapeHtml(r.room)} 号室</span>
               <span class="room-status-badges">
                 ${isEmpty ? '<span class="vacancy-badge">空室</span>' : ''}
-                ${hasPurchaseRequest ? '<span class="purchase-request-alert">🛒 購入依頼あり</span>' : ''}
+                ${hasPurchaseRequest ? `<span class="purchase-request-alert" title="${escapeHtml(r.purchaseItem || '品名未入力')}">🛒 購入依頼あり${r.purchaseItem ? `：${escapeHtml(r.purchaseItem)}` : ''}</span>` : ''}
               </span>
             </div>
             <div class="room-card-name floor-board-card-name">
@@ -1808,6 +1820,18 @@
     if (elements.btnAddFloorEvent) {
       elements.btnAddFloorEvent.addEventListener('click', addFloorEvent);
     }
+    if (elements.floorPurchaseRequest) {
+      elements.floorPurchaseRequest.addEventListener('change', updatePurchaseComposerVisibility);
+    }
+    if (elements.btnGeneratePurchaseEmail) {
+      elements.btnGeneratePurchaseEmail.addEventListener('click', () => generatePurchaseMessage('email'));
+    }
+    if (elements.btnGeneratePurchasePhone) {
+      elements.btnGeneratePurchasePhone.addEventListener('click', () => generatePurchaseMessage('phone'));
+    }
+    if (elements.btnCopyPurchaseMessage) {
+      elements.btnCopyPurchaseMessage.addEventListener('click', copyPurchaseMessage);
+    }
 
     // 退去フォーム送信
     elements.moveOutForm.addEventListener('submit', (e) => {
@@ -1994,6 +2018,14 @@
     elements.plannedResidentName.value = resident.plannedResidentName || '';
     elements.plannedEntryDate.value = resident.plannedEntryDate || '';
     elements.plannedResidentNote.value = resident.plannedResidentNote || '';
+    elements.floorPurchaseRequest.checked = Boolean(resident.purchaseRequest);
+    elements.purchaseItem.value = resident.purchaseItem || '';
+    elements.purchaseQuantity.value = resident.purchaseQuantity || '';
+    elements.purchaseDesiredDate.value = resident.purchaseDesiredDate || '';
+    elements.purchaseNote.value = resident.purchaseNote || '';
+    elements.purchaseMessageOutput.value = '';
+    elements.purchaseMessageOutputWrap.hidden = true;
+    updatePurchaseComposerVisibility();
     elements.floorEventDate.value = new Date().toISOString().slice(0, 10);
     elements.floorEventTitle.value = '';
     renderFloorEventList(resident.id);
@@ -2006,7 +2038,12 @@
       cleaningStatus: elements.floorCleaningStatus.value,
       plannedResidentName: elements.plannedResidentName.value.trim(),
       plannedEntryDate: elements.plannedEntryDate.value,
-      plannedResidentNote: elements.plannedResidentNote.value.trim()
+      plannedResidentNote: elements.plannedResidentNote.value.trim(),
+      purchaseRequest: elements.floorPurchaseRequest.checked,
+      purchaseItem: elements.purchaseItem.value.trim(),
+      purchaseQuantity: elements.purchaseQuantity.value.trim(),
+      purchaseDesiredDate: elements.purchaseDesiredDate.value,
+      purchaseNote: elements.purchaseNote.value.trim()
     };
   }
 
@@ -2059,6 +2096,94 @@
     const nextValue = !resident.purchaseRequest;
     window.DataStore.updateFloorBoard(residentId, { purchaseRequest: nextValue });
     showToast(nextValue ? `${resident.room}号室を物品購入依頼ありにしました` : `${resident.room}号室の物品購入依頼を解除しました`, nextValue ? 'warning' : 'success');
+  }
+
+  function updatePurchaseComposerVisibility() {
+    if (!elements.floorPurchaseRequest || !elements.purchaseComposerFields) return;
+    const enabled = elements.floorPurchaseRequest.checked;
+    elements.purchaseComposerFields.classList.toggle('is-disabled', !enabled);
+    elements.purchaseComposerFields.querySelectorAll('input, button').forEach(control => {
+      control.disabled = !enabled;
+    });
+    if (!enabled && elements.purchaseMessageOutputWrap) {
+      elements.purchaseMessageOutputWrap.hidden = true;
+    }
+  }
+
+  function buildPurchaseMessage(type, resident, values) {
+    const residentLabel = resident.name ? `${resident.name}様` : '入居者未定';
+    const target = `${resident.room}号室 ${residentLabel}`;
+    const quantity = values.purchaseQuantity || '未指定';
+    const desiredDate = values.purchaseDesiredDate ? formatFloorEventDate(values.purchaseDesiredDate) : '指定なし';
+    const note = values.purchaseNote || '特になし';
+
+    if (type === 'phone') {
+      return [
+        'お世話になっております。株式会社アースの［担当者名］です。',
+        '物品購入のお願いでお電話しました。',
+        '',
+        `対象は、${target}です。`,
+        `品名は「${values.purchaseItem}」、数量は「${quantity}」です。`,
+        `希望日は「${desiredDate}」です。`,
+        `補足は「${note}」です。`,
+        '',
+        'こちらの内容で手配可能でしょうか。',
+        '納期と金額をご確認いただけましたら、お願いいたします。'
+      ].join('\n');
+    }
+
+    return [
+      `件名：物品購入のお願い（${resident.room}号室 ${residentLabel}）`,
+      '',
+      'ご担当者様',
+      '',
+      'お疲れ様です。',
+      '下記物品の購入をお願いいたします。',
+      '',
+      `対象：${target}`,
+      `品名：${values.purchaseItem}`,
+      `数量：${quantity}`,
+      `希望日：${desiredDate}`,
+      `補足：${note}`,
+      '',
+      'お手配の可否と納期をご返信ください。',
+      'よろしくお願いいたします。'
+    ].join('\n');
+  }
+
+  function generatePurchaseMessage(type) {
+    const residentId = elements.floorBoardForm && elements.floorBoardForm.dataset.residentId;
+    const resident = residentId ? window.DataStore.getResidentById(residentId) : null;
+    if (!resident || !elements.floorPurchaseRequest.checked) {
+      showToast('購入依頼をONにしてください', 'warning');
+      return;
+    }
+
+    const values = getFloorBoardFormValues();
+    if (!values.purchaseItem) {
+      showToast('品名を入力してください', 'warning');
+      elements.purchaseItem.focus();
+      return;
+    }
+
+    window.DataStore.updateFloorBoard(residentId, values);
+    elements.purchaseMessageTitle.textContent = type === 'phone' ? '📞 電話用スクリプト' : '✉️ メール文';
+    elements.purchaseMessageOutput.value = buildPurchaseMessage(type, resident, values);
+    elements.purchaseMessageOutputWrap.hidden = false;
+    showToast(type === 'phone' ? '電話用スクリプトを作成しました' : 'メール文を作成しました');
+  }
+
+  async function copyPurchaseMessage() {
+    const text = elements.purchaseMessageOutput && elements.purchaseMessageOutput.value;
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (_err) {
+      elements.purchaseMessageOutput.select();
+      document.execCommand('copy');
+      elements.purchaseMessageOutput.setSelectionRange(0, 0);
+    }
+    showToast('文章をコピーしました');
   }
 
   /**

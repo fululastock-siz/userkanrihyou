@@ -16,7 +16,7 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- スタイルシート（キャッシュバスター付き） -->
-  <link rel="stylesheet" href="assets/css/earth-theme.css?v=20260902_26">
+  <link rel="stylesheet" href="assets/css/earth-theme.css?v=20260902_28">
   <link rel="stylesheet" href="assets/css/print.css?v=20260902_17">
 </head>
 <body>
@@ -768,6 +768,47 @@
             <textarea id="floor-room-memo" class="form-input floor-room-memo-input" rows="5" placeholder="申し送り、対応事項、注意点などを入力"></textarea>
           </div>
 
+          <div class="floor-board-section purchase-composer-section">
+            <div class="floor-board-section-title purchase-composer-title">
+              <span>🛒 物品購入依頼・連絡文の作成</span>
+              <label class="purchase-request-switch">
+                <input type="checkbox" id="floor-purchase-request">
+                <span>購入依頼 ON</span>
+              </label>
+            </div>
+            <div id="purchase-composer-fields" class="purchase-composer-fields">
+              <div class="purchase-detail-grid">
+                <div class="form-group">
+                  <label class="form-label" for="purchase-item">品名</label>
+                  <input type="text" id="purchase-item" class="form-input" maxlength="80" placeholder="例：介護用シューズ">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="purchase-quantity">数量</label>
+                  <input type="text" id="purchase-quantity" class="form-input" maxlength="30" placeholder="例：1足">
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="purchase-desired-date">希望日</label>
+                  <input type="date" id="purchase-desired-date" class="form-input">
+                </div>
+                <div class="form-group full-width">
+                  <label class="form-label" for="purchase-note">補足</label>
+                  <input type="text" id="purchase-note" class="form-input" maxlength="160" placeholder="サイズ、色、型番、購入先など">
+                </div>
+              </div>
+              <div class="purchase-compose-actions">
+                <button type="button" class="btn btn-outline" id="btn-generate-purchase-email">✉️ メール文を作成</button>
+                <button type="button" class="btn btn-outline" id="btn-generate-purchase-phone">📞 電話スクリプトを作成</button>
+              </div>
+              <div id="purchase-message-output-wrap" class="purchase-message-output-wrap" hidden>
+                <div class="purchase-message-heading">
+                  <strong id="purchase-message-title">作成した文章</strong>
+                  <button type="button" class="btn btn-outline btn-sm" id="btn-copy-purchase-message">📋 コピー</button>
+                </div>
+                <textarea id="purchase-message-output" class="form-input purchase-message-output" rows="11" readonly></textarea>
+              </div>
+            </div>
+          </div>
+
           <div class="floor-board-section floor-calendar-section">
             <div class="floor-board-section-title">📅 カレンダー予定</div>
             <div class="floor-event-entry">
@@ -1027,11 +1068,11 @@
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_27"></script>
+  <script src="assets/js/data-store.js?v=20260902_28"></script>
   <script src="assets/js/excel-importer.js?v=20260902_17"></script>
   <script src="assets/js/excel-exporter.js?v=20260902_17"></script>
   <script src="assets/js/google-sheet-sync.js?v=20260902_24"></script>
-  <script src="assets/js/app.js?v=20260902_27"></script>
+  <script src="assets/js/app.js?v=20260902_28"></script>
 
   <script>
     // 印刷日時
