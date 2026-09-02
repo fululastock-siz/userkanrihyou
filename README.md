@@ -2,6 +2,12 @@
 
 株式会社アース（EARTH CARE GROUP）公式Webアプリケーション・デザインシステムに完全準拠した、**入居者管理およびExcel（.xls / .xlsx / .csv）取り込みシステム**です。
 
+## 🌐 公開URL（デプロイ先）
+
+本システムは GitHub Pages にデプロイされており、以下のURLからPCやタブレットのブラウザで直接ご利用いただけます：
+
+👉 **[https://fululastock-siz.github.io/userkanrihyou/](https://fululastock-siz.github.io/userkanrihyou/)**
+
 ---
 
 ## 🌟 主な特徴・機能
