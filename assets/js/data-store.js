@@ -324,6 +324,10 @@
               if (typeof r.floorMemo !== 'string') r.floorMemo = '';
               if (!Array.isArray(r.floorEvents)) r.floorEvents = [];
               r.purchaseRequest = Boolean(r.purchaseRequest);
+              if (typeof r.cleaningStatus !== 'string') r.cleaningStatus = '';
+              if (typeof r.plannedResidentName !== 'string') r.plannedResidentName = '';
+              if (typeof r.plannedEntryDate !== 'string') r.plannedEntryDate = '';
+              if (typeof r.plannedResidentNote !== 'string') r.plannedResidentNote = '';
               if (r.name) {
                 if (!r.copay) r.copay = (idx % 8 === 0) ? '2割' : (idx % 15 === 0 ? '3割' : '1割');
                 if (!r.insNumber) r.insNumber = `00${String(12345678 + parseInt(r.room || '0', 10)).padStart(8, '0')}`;
@@ -357,6 +361,10 @@
         r.floorMemo = '';
         r.floorEvents = [];
         r.purchaseRequest = false;
+        r.cleaningStatus = '';
+        r.plannedResidentName = '';
+        r.plannedEntryDate = '';
+        r.plannedResidentNote = '';
         if (r.name) {
           if (!r.copay) r.copay = (idx % 8 === 0) ? '2割' : (idx % 15 === 0 ? '3割' : '1割');
           if (!r.insNumber) r.insNumber = `00${String(12345678 + parseInt(r.room || '0', 10)).padStart(8, '0')}`;
@@ -453,7 +461,11 @@
           ...resident,
           floorMemo: typeof resident.floorMemo === 'string' ? resident.floorMemo : '',
           floorEvents: Array.isArray(resident.floorEvents) ? resident.floorEvents : [],
-          purchaseRequest: Boolean(resident.purchaseRequest)
+          purchaseRequest: Boolean(resident.purchaseRequest),
+          cleaningStatus: typeof resident.cleaningStatus === 'string' ? resident.cleaningStatus : '',
+          plannedResidentName: typeof resident.plannedResidentName === 'string' ? resident.plannedResidentName : '',
+          plannedEntryDate: typeof resident.plannedEntryDate === 'string' ? resident.plannedEntryDate : '',
+          plannedResidentNote: typeof resident.plannedResidentNote === 'string' ? resident.plannedResidentNote : ''
         }))
       };
 
@@ -659,6 +671,19 @@
       if (Object.prototype.hasOwnProperty.call(changes, 'purchaseRequest')) {
         resident.purchaseRequest = Boolean(changes.purchaseRequest);
       }
+      if (Object.prototype.hasOwnProperty.call(changes, 'cleaningStatus')) {
+        const allowed = ['', '未清掃', '清掃中', '清掃済'];
+        resident.cleaningStatus = allowed.includes(changes.cleaningStatus) ? changes.cleaningStatus : '';
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'plannedResidentName')) {
+        resident.plannedResidentName = String(changes.plannedResidentName || '').trim();
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'plannedEntryDate')) {
+        resident.plannedEntryDate = String(changes.plannedEntryDate || '');
+      }
+      if (Object.prototype.hasOwnProperty.call(changes, 'plannedResidentNote')) {
+        resident.plannedResidentNote = String(changes.plannedResidentNote || '').trim();
+      }
 
       this.saveData();
       return true;
@@ -752,6 +777,7 @@
         res.floorMemo = "";
         res.floorEvents = [];
         res.purchaseRequest = false;
+        res.cleaningStatus = "未清掃";
         this.saveData();
       }
     }
@@ -992,19 +1018,46 @@
 
       // 2. 画面・現在のデータへの反映（マージまたは上書き）
       if (mergeMode === 'overwrite') {
-        const floorBoardByRoom = new Map(this.data.residents.map(resident => [String(resident.room), {
+        const currentResidents = this.data.residents;
+        const floorBoardByRoom = new Map(currentResidents.map(resident => [String(resident.room), {
           floorMemo: resident.floorMemo || '',
           floorEvents: Array.isArray(resident.floorEvents) ? resident.floorEvents : [],
-          purchaseRequest: Boolean(resident.purchaseRequest)
+          purchaseRequest: Boolean(resident.purchaseRequest),
+          cleaningStatus: resident.cleaningStatus || '',
+          plannedResidentName: resident.plannedResidentName || '',
+          plannedEntryDate: resident.plannedEntryDate || '',
+          plannedResidentNote: resident.plannedResidentNote || ''
         }]));
-        this.data.residents = parsedResidents.map(resident => ({
-          ...resident,
-          ...(floorBoardByRoom.get(String(resident.room)) || {
+        const incomingByRoom = new Map(parsedResidents.map(resident => [String(resident.room), resident]));
+        const currentByRoom = new Map(currentResidents.map(resident => [String(resident.room), resident]));
+        const roomNumbers = [...new Set([
+          ...currentResidents.map(resident => String(resident.room)),
+          ...parsedResidents.map(resident => String(resident.room))
+        ])];
+
+        this.data.residents = roomNumbers.map(room => {
+          const incoming = incomingByRoom.get(room);
+          const current = currentByRoom.get(room);
+          const base = incoming || {
+            id: current && current.id ? current.id : `res_${room}`,
+            room,
+            floor: current && current.floor ? current.floor : Number(room.charAt(0)),
+            name: '',
+            status: '空室'
+          };
+          return {
+            ...base,
+            ...(floorBoardByRoom.get(room) || {
             floorMemo: '',
             floorEvents: [],
-            purchaseRequest: false
-          })
-        }));
+            purchaseRequest: false,
+            cleaningStatus: '',
+            plannedResidentName: '',
+            plannedEntryDate: '',
+            plannedResidentNote: ''
+            })
+          };
+        });
       } else {
         parsedResidents.forEach(newRes => {
           const idx = this.data.residents.findIndex(r => String(r.room) === String(newRes.room));

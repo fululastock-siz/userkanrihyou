@@ -16,7 +16,7 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- スタイルシート（キャッシュバスター付き） -->
-  <link rel="stylesheet" href="assets/css/earth-theme.css?v=20260902_21">
+  <link rel="stylesheet" href="assets/css/earth-theme.css?v=20260902_23">
   <link rel="stylesheet" href="assets/css/print.css?v=20260902_17">
 </head>
 <body>
@@ -735,6 +735,34 @@
       </div>
       <form id="floor-board-form">
         <div class="modal-body">
+          <div class="floor-board-section vacancy-planning-section">
+            <div class="floor-board-section-title">🏠 空室・入居予定管理</div>
+            <div class="vacancy-planning-note">ワイズマン取込とは独立して保存され、全PCへクラウド同期されます。</div>
+            <div class="vacancy-planning-grid">
+              <div class="form-group">
+                <label class="form-label" for="floor-cleaning-status">🧹 清掃状況</label>
+                <select id="floor-cleaning-status" class="form-input">
+                  <option value="">未設定</option>
+                  <option value="未清掃">未清掃</option>
+                  <option value="清掃中">清掃中</option>
+                  <option value="清掃済">清掃済</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="planned-resident-name">入居予定者</label>
+                <input type="text" id="planned-resident-name" class="form-input" maxlength="60" placeholder="氏名を入力">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="planned-entry-date">入居予定日</label>
+                <input type="date" id="planned-entry-date" class="form-input">
+              </div>
+              <div class="form-group full-width">
+                <label class="form-label" for="planned-resident-note">入居予定の補足</label>
+                <input type="text" id="planned-resident-note" class="form-input" maxlength="100" placeholder="準備物、連絡事項など">
+              </div>
+            </div>
+          </div>
+
           <div class="floor-board-section">
             <label class="form-label" for="floor-room-memo">📝 居室メモ</label>
             <textarea id="floor-room-memo" class="form-input floor-room-memo-input" rows="5" placeholder="申し送り、対応事項、注意点などを入力"></textarea>
@@ -758,7 +786,7 @@
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('floor-board-modal'))">閉じる</button>
-          <button type="submit" class="btn btn-primary">💾 メモを保存</button>
+          <button type="submit" class="btn btn-primary">💾 居室管理を保存</button>
         </div>
       </form>
     </div>
@@ -824,7 +852,7 @@
             <div>
               <strong style="color: #166534; font-size: 14px;">🟢 自動共有エンジンについて</strong>
               <div style="font-size: 12px; color: #15803d; margin-top: 2px;">
-                URLを設定すると、<strong>入居者情報・メモ・予定・購入依頼・マスタ・異動履歴</strong>を含む全データが、編集時・起動時・30秒ごとに全PCへ同期されます。
+                URLを設定すると、<strong>入居者情報・空室・清掃・入居予定・メモ・予定・購入依頼・マスタ・異動履歴</strong>を含む全データが、キャッシュを先に表示しながら編集時・起動時・30秒ごと・画面復帰時に全PCへ同期されます。
               </div>
             </div>
             <a href="https://docs.google.com/spreadsheets/d/1fjFlkIc29WlkZxYIP3hRNXRMYPW7MQpqcgCH3FjHnkY/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="background:#fff; border-color:#86efac; color:#166534;">
@@ -999,11 +1027,11 @@
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_22"></script>
+  <script src="assets/js/data-store.js?v=20260902_23"></script>
   <script src="assets/js/excel-importer.js?v=20260902_17"></script>
   <script src="assets/js/excel-exporter.js?v=20260902_17"></script>
-  <script src="assets/js/google-sheet-sync.js?v=20260902_22"></script>
-  <script src="assets/js/app.js?v=20260902_22"></script>
+  <script src="assets/js/google-sheet-sync.js?v=20260902_23"></script>
+  <script src="assets/js/app.js?v=20260902_23"></script>
 
   <script>
     // 印刷日時

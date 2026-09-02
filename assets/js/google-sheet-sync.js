@@ -13,7 +13,7 @@
     spreadsheetUrl: 'https://docs.google.com/spreadsheets/d/1fjFlkIc29WlkZxYIP3hRNXRMYPW7MQpqcgCH3FjHnkY/edit?usp=sharing',
     gasWebAppUrl: '',
     autoSync: true,
-    syncIntervalSec: 30, // 30秒ごとの定期自動同期
+    syncIntervalSec: 30, // 表示中のみ30秒ごとに軽量な差分確認
     lastSyncTime: null
   };
 
@@ -28,14 +28,19 @@
       this.isApplyingCloudData = false;
       this.isDataStoreBound = false;
       this.pushInFlight = null;
+      this.isPulling = false;
       this.lastCloudRevision = null;
+      this.lifecycleSyncBound = false;
+      this.lastImmediateSyncAt = 0;
     }
 
     loadSettings() {
       try {
         const stored = localStorage.getItem(SETTINGS_KEY);
         if (stored) {
-          return { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+          const loaded = { ...DEFAULT_SETTINGS, ...JSON.parse(stored) };
+          loaded.syncIntervalSec = 30;
+          return loaded;
         }
       } catch (e) {
         console.warn('Failed to load Google Sheet settings:', e);
@@ -85,6 +90,27 @@
         if (this.isApplyingCloudData || meta.source === 'cloud') return;
         this.markPendingWrite();
         this.triggerAutoPush({ alreadyMarked: true });
+      });
+    }
+
+    requestImmediateSync() {
+      if (!this.settings.gasWebAppUrl || document.visibilityState !== 'visible') return;
+      const now = Date.now();
+      if (now - this.lastImmediateSyncAt < 5000) return;
+      this.lastImmediateSyncAt = now;
+      this.pullFromSpreadsheet({ silent: true }).catch(err => {
+        console.debug('Immediate cloud sync skipped:', err);
+      });
+    }
+
+    bindLifecycleSync() {
+      if (this.lifecycleSyncBound) return;
+      this.lifecycleSyncBound = true;
+      window.addEventListener('online', () => this.requestImmediateSync());
+      window.addEventListener('focus', () => this.requestImmediateSync());
+      window.addEventListener('pageshow', () => this.requestImmediateSync());
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') this.requestImmediateSync();
       });
     }
 
@@ -161,6 +187,7 @@
      */
     initAutoSync() {
       this.bindDataStore();
+      this.bindLifecycleSync();
       this.notifyStatusChange();
 
       if (!this.settings.gasWebAppUrl) {
@@ -171,8 +198,7 @@
       const startupSync = async () => {
         if (this.hasPendingWrite()) {
           await this.pushToSpreadsheet({ silent: true });
-        }
-        if (!this.hasPendingWrite()) {
+        } else {
           await this.pullFromSpreadsheet({ silent: true, skipPendingCheck: true });
         }
       };
@@ -186,9 +212,9 @@
         console.warn('Initial pull failed:', err);
       });
 
-      // 2. 定期自動同期タイマー（30秒ごと）
+      // 2. 定期自動同期タイマー（変更がなければ小さな応答だけを受信）
       if (this.periodicSyncTimer) clearInterval(this.periodicSyncTimer);
-      const intervalMs = Math.max(15, this.settings.syncIntervalSec || 30) * 1000;
+      const intervalMs = 30 * 1000;
       this.periodicSyncTimer = setInterval(() => {
         if (this.settings.gasWebAppUrl && document.visibilityState === 'visible') {
           this.pullFromSpreadsheet({ silent: true }).catch(err => console.debug('Periodic sync skipped:', err));
@@ -223,14 +249,17 @@
         return null;
       }
 
+      if (this.isPulling) return null;
+      this.isPulling = true;
+
       this.status = 'syncing';
       this.notifyStatusChange();
 
       try {
         // 未送信のローカル編集がある場合は、クラウド取得より先に必ず送信する
         if (!options.skipPendingCheck && this.hasPendingWrite()) {
-          await this.pushToSpreadsheet({ silent: options.silent });
-          if (this.hasPendingWrite()) return null;
+          const pushed = await this.pushToSpreadsheet({ silent: options.silent });
+          return pushed ? { pushed: true, residents: window.DataStore.getAllResidents() } : null;
         }
 
         const separator = this.settings.gasWebAppUrl.includes('?') ? '&' : '?';
@@ -284,6 +313,8 @@
         this.notifyStatusChange(err.message);
         if (!options.silent) throw err;
         return null;
+      } finally {
+        this.isPulling = false;
       }
     }
 

@@ -190,7 +190,8 @@ function writeReadableResidents_(ss, residents) {
     '部屋番号', '名前', '介護度', '年齢', '誕生日', '入居日',
     '負担割合', '被保険者番号', '保険者', '認定開始日', '認定満了日', '更新申請状況',
     '訪問医', '口腔衛生', '福祉用具', 'ごはん', 'おかず', 'とろみ', 'エアコン', '早出し',
-    '備考', 'フロアメモ', 'フロア予定(JSON)', '物品購入依頼'
+    '備考', 'フロアメモ', 'フロア予定(JSON)', '物品購入依頼',
+    '清掃状況', '入居予定者', '入居予定日', '入居予定補足'
   ];
   var rows = [header];
   residents.forEach(function(r) {
@@ -201,7 +202,8 @@ function writeReadableResidents_(ss, residents) {
       r.doctor || '', r.dental || '', r.equipment || '', r.foodMain || r.foodRice || '',
       r.foodSide || r.foodDish || '', r.foodThick || '', r.airConditioner || '〇',
       r.earlyFood || r.earlyDelivery ? 'ON' : '', r.note || '', r.floorMemo || '',
-      JSON.stringify(Array.isArray(r.floorEvents) ? r.floorEvents : []), r.purchaseRequest ? 'ON' : ''
+      JSON.stringify(Array.isArray(r.floorEvents) ? r.floorEvents : []), r.purchaseRequest ? 'ON' : '',
+      r.cleaningStatus || '', r.plannedResidentName || '', r.plannedEntryDate || '', r.plannedResidentNote || ''
     ]);
   });
 
@@ -266,6 +268,10 @@ function readLegacyResidents_(ss) {
       floorMemo: String(getValue(row, 'フロアメモ') || ''),
       floorEvents: Array.isArray(events) ? events : [],
       purchaseRequest: String(getValue(row, '物品購入依頼') || '').toUpperCase() === 'ON',
+      cleaningStatus: String(getValue(row, '清掃状況') || ''),
+      plannedResidentName: String(getValue(row, '入居予定者') || ''),
+      plannedEntryDate: formatCellDate_(getValue(row, '入居予定日')),
+      plannedResidentNote: String(getValue(row, '入居予定補足') || ''),
       status: String(getValue(row, '名前', 1) || '').trim() ? '入居中' : '空室'
     });
   }

@@ -89,6 +89,10 @@
     floorEventTitle: document.getElementById('floor-event-title'),
     floorEventList: document.getElementById('floor-event-list'),
     btnAddFloorEvent: document.getElementById('btn-add-floor-event'),
+    floorCleaningStatus: document.getElementById('floor-cleaning-status'),
+    plannedResidentName: document.getElementById('planned-resident-name'),
+    plannedEntryDate: document.getElementById('planned-entry-date'),
+    plannedResidentNote: document.getElementById('planned-resident-note'),
 
     // 退去モーダル
     moveOutModal: document.getElementById('move-out-modal'),
@@ -601,10 +605,12 @@
     // クイック統計
     if (statContainer) {
       const totalOccupied = allResidents.filter(r => r.name && r.name.trim() !== '').length;
+      const plannedCount = allResidents.filter(r => !String(r.name || '').trim() && String(r.plannedResidentName || '').trim()).length;
       statContainer.innerHTML = `
         <span>総定員: <strong>${allResidents.length}</strong> 室</span>
         <span>在室: <strong style="color:var(--earth-green-dark);">${totalOccupied}</strong> 名</span>
         <span>空室: <strong style="color:var(--earth-muted);">${allResidents.length - totalOccupied}</strong> 室</span>
+        <span>入居予定: <strong style="color:#1d4ed8;">${plannedCount}</strong> 名</span>
       `;
     }
 
@@ -650,21 +656,42 @@
         const today = new Date().toISOString().slice(0, 10);
         const nextEvent = events.find(event => String(event.date) >= today) || events[0];
         const hasPurchaseRequest = Boolean(r.purchaseRequest);
+        const cleaningStatus = String(r.cleaningStatus || '');
+        const plannedResidentName = String(r.plannedResidentName || '').trim();
+        const plannedEntryDate = String(r.plannedEntryDate || '');
+        const plannedResidentNote = String(r.plannedResidentNote || '').trim();
+        const hasPlannedResident = Boolean(plannedResidentName || plannedEntryDate);
+        const cleaningClass = cleaningStatus === '清掃済' ? 'is-clean' : (cleaningStatus === '清掃中' ? 'is-cleaning' : 'is-unclean');
 
         return `
-          <div class="room-card floor-board-card ${isEmpty ? 'is-empty' : ''} ${hasPurchaseRequest ? 'has-purchase-request' : ''}"
+          <div class="room-card floor-board-card ${isEmpty ? 'is-empty' : ''} ${hasPlannedResident && isEmpty ? 'has-planned-resident' : ''} ${hasPurchaseRequest ? 'has-purchase-request' : ''}"
                role="button" tabindex="0"
                onclick="window.EarthApp.openFloorBoardModal('${r.id}')"
                onkeydown="if(event.key === 'Enter' || event.key === ' '){event.preventDefault(); window.EarthApp.openFloorBoardModal('${r.id}');}">
             <div class="room-card-header">
               <span class="room-card-num">${escapeHtml(r.room)} 号室</span>
-              ${hasPurchaseRequest ? '<span class="purchase-request-alert">🛒 購入依頼あり</span>' : ''}
+              <span class="room-status-badges">
+                ${isEmpty ? '<span class="vacancy-badge">空室</span>' : ''}
+                ${hasPurchaseRequest ? '<span class="purchase-request-alert">🛒 購入依頼あり</span>' : ''}
+              </span>
             </div>
             <div class="room-card-name floor-board-card-name">
               <span>${escapeHtml(r.name || '空室')}</span>
             </div>
 
             <div class="floor-card-content">
+              ${isEmpty ? `
+                <div class="vacancy-management">
+                  <span class="cleaning-status-badge ${cleaningClass}">🧹 ${escapeHtml(cleaningStatus || '清掃未設定')}</span>
+                  ${hasPlannedResident ? `
+                    <div class="planned-resident-summary">
+                      <strong>🏠 入居予定：${escapeHtml(plannedResidentName || '氏名未登録')}</strong>
+                      ${plannedEntryDate ? `<span>${escapeHtml(formatFloorEventDate(plannedEntryDate))} 入居予定</span>` : ''}
+                      ${plannedResidentNote ? `<small>${escapeHtml(plannedResidentNote)}</small>` : ''}
+                    </div>
+                  ` : '<div class="planned-resident-empty">入居予定者なし</div>'}
+                </div>
+              ` : ''}
               <div class="floor-card-memo ${memo ? '' : 'is-empty-value'}">
                 <span class="floor-card-label">📝 メモ</span>
                 <span>${memo ? escapeHtml(memo) : 'メモはありません'}</span>
@@ -1581,7 +1608,6 @@
     elements.btnResetData.addEventListener('click', () => {
       if (confirm('初期サンプルデータにリセットしますか？ 現在の編集内容は上書きされます。')) {
         window.DataStore.resetToDefault();
-        window.GoogleSheetSync.triggerAutoPush();
         showToast('データを初期化しました');
       }
     });
@@ -1634,7 +1660,6 @@
       if (success) {
         closeModal(elements.diffPreviewModal);
         showToast('データのインポートと更新が完了しました！');
-        window.GoogleSheetSync.triggerAutoPush();
         switchTab('all');
       }
     });
@@ -1727,7 +1752,6 @@
       };
 
       window.DataStore.saveResident(residentObj);
-      window.GoogleSheetSync.triggerAutoPush();
       closeModal(elements.residentEditModal);
       showToast(`${roomNum}号室 (${residentObj.name || '空室'}) の情報を更新しました`);
     });
@@ -1752,7 +1776,6 @@
       const note = elements.moveOutForm.note.value;
 
       window.DataStore.moveOutResident(resId, { eventType, eventDate, note });
-      window.GoogleSheetSync.triggerAutoPush();
       closeModal(elements.moveOutModal);
       showToast('退去・異動処理を記録し、居室を空室に更新しました');
     });
@@ -1803,7 +1826,6 @@
       }
     }
     window.DataStore.updateResidentField(residentId, fieldKey, finalValue);
-    window.GoogleSheetSync.triggerAutoPush();
     showToast(`更新しました (${fieldKey}: ${finalValue !== '' ? finalValue : '空欄'})`);
   }
 
@@ -1893,23 +1915,34 @@
     if (!resident || !elements.floorBoardModal || !elements.floorBoardForm) return;
 
     elements.floorBoardForm.dataset.residentId = resident.id;
-    elements.floorBoardTitle.textContent = `🗓️ ${resident.room}号室 メモ・予定`;
+    elements.floorBoardTitle.textContent = `🏠 ${resident.room}号室 居室管理`;
     elements.floorBoardResident.textContent = resident.name ? `入居者：${resident.name}` : '現在は空室です';
     elements.floorRoomMemo.value = resident.floorMemo || '';
+    elements.floorCleaningStatus.value = resident.cleaningStatus || '';
+    elements.plannedResidentName.value = resident.plannedResidentName || '';
+    elements.plannedEntryDate.value = resident.plannedEntryDate || '';
+    elements.plannedResidentNote.value = resident.plannedResidentNote || '';
     elements.floorEventDate.value = new Date().toISOString().slice(0, 10);
     elements.floorEventTitle.value = '';
     renderFloorEventList(resident.id);
     elements.floorBoardModal.classList.add('active');
   }
 
+  function getFloorBoardFormValues() {
+    return {
+      floorMemo: elements.floorRoomMemo.value.trim(),
+      cleaningStatus: elements.floorCleaningStatus.value,
+      plannedResidentName: elements.plannedResidentName.value.trim(),
+      plannedEntryDate: elements.plannedEntryDate.value,
+      plannedResidentNote: elements.plannedResidentNote.value.trim()
+    };
+  }
+
   function saveFloorBoardMemo() {
     const residentId = elements.floorBoardForm && elements.floorBoardForm.dataset.residentId;
     if (!residentId) return;
-    window.DataStore.updateFloorBoard(residentId, {
-      floorMemo: elements.floorRoomMemo.value.trim()
-    });
-    window.GoogleSheetSync.triggerAutoPush();
-    showToast('居室メモを保存しました');
+    window.DataStore.updateFloorBoard(residentId, getFloorBoardFormValues());
+    showToast('居室管理情報を保存しました');
   }
 
   function addFloorEvent() {
@@ -1929,10 +1962,9 @@
       title
     });
     window.DataStore.updateFloorBoard(residentId, {
-      floorMemo: elements.floorRoomMemo.value.trim(),
+      ...getFloorBoardFormValues(),
       floorEvents: events
     });
-    window.GoogleSheetSync.triggerAutoPush();
     elements.floorEventTitle.value = '';
     renderFloorEventList(residentId);
     showToast('カレンダー予定を追加しました');
@@ -1945,7 +1977,6 @@
       ? resident.floorEvents.filter(event => String(event.id) !== String(eventId))
       : [];
     window.DataStore.updateFloorBoard(residentId, { floorEvents: events });
-    window.GoogleSheetSync.triggerAutoPush();
     renderFloorEventList(residentId);
     showToast('予定を削除しました');
   }
@@ -1955,7 +1986,6 @@
     if (!resident) return;
     const nextValue = !resident.purchaseRequest;
     window.DataStore.updateFloorBoard(residentId, { purchaseRequest: nextValue });
-    window.GoogleSheetSync.triggerAutoPush();
     showToast(nextValue ? `${resident.room}号室を物品購入依頼ありにしました` : `${resident.room}号室の物品購入依頼を解除しました`, nextValue ? 'warning' : 'success');
   }
 

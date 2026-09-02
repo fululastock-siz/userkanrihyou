@@ -1262,6 +1262,34 @@ body {
   box-shadow: 0 6px 18px rgba(245, 158, 11, 0.22);
 }
 
+.floor-board-card.is-empty {
+  opacity: 1;
+  background: #f8fafc;
+}
+
+.floor-board-card.has-planned-resident {
+  border: 2px solid #60a5fa;
+  background: linear-gradient(145deg, #eff6ff 0%, #ffffff 72%);
+  box-shadow: 0 5px 16px rgba(37, 99, 235, 0.15);
+}
+
+.room-status-badges {
+  display: inline-flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 5px;
+}
+
+.vacancy-badge {
+  display: inline-flex;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 900;
+}
+
 .purchase-request-alert {
   display: inline-flex;
   align-items: center;
@@ -1289,6 +1317,49 @@ body {
   flex-direction: column;
   gap: 9px;
   margin: 5px 0 12px;
+}
+
+.vacancy-management {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 9px;
+  border: 1px solid #bfdbfe;
+  border-radius: 9px;
+  background: #eff6ff;
+}
+
+.cleaning-status-badge {
+  align-self: flex-start;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 900;
+}
+
+.cleaning-status-badge.is-clean { background: #dcfce7; color: #166534; }
+.cleaning-status-badge.is-cleaning { background: #fef3c7; color: #92400e; }
+.cleaning-status-badge.is-unclean { background: #fee2e2; color: #991b1b; }
+
+.planned-resident-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  color: #1e3a8a;
+  font-size: 12px;
+}
+
+.planned-resident-summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #475569;
+}
+
+.planned-resident-empty {
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .floor-card-memo,
@@ -1369,6 +1440,29 @@ body {
   margin-top: 22px;
 }
 
+.vacancy-planning-section {
+  padding: 14px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.vacancy-planning-note {
+  margin: -5px 0 12px;
+  color: #475569;
+  font-size: 11.5px;
+}
+
+.vacancy-planning-grid {
+  display: grid;
+  grid-template-columns: 160px minmax(180px, 1fr) 170px;
+  gap: 12px;
+}
+
+.vacancy-planning-grid .full-width {
+  grid-column: 1 / -1;
+}
+
 .floor-room-memo-input {
   margin-top: 8px;
   resize: vertical;
@@ -1392,6 +1486,16 @@ body {
   grid-template-columns: 170px minmax(220px, 1fr) auto;
   gap: 10px;
   align-items: end;
+}
+
+@media (max-width: 720px) {
+  .vacancy-planning-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .vacancy-planning-grid .full-width {
+    grid-column: auto;
+  }
 }
 
 .floor-event-list {
