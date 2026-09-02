@@ -594,6 +594,70 @@
       });
     });
 
+    // スプレッドシート連携モーダル開閉
+    const sheetSyncModal = document.getElementById('sheet-sync-modal');
+    const btnSheetSyncModal = document.getElementById('btn-sheet-sync-modal');
+    if (btnSheetSyncModal && sheetSyncModal) {
+      btnSheetSyncModal.addEventListener('click', () => {
+        const gasInput = document.getElementById('gas-web-app-url');
+        if (gasInput) {
+          gasInput.value = window.GoogleSheetSync.settings.gasWebAppUrl || '';
+        }
+        sheetSyncModal.classList.add('active');
+      });
+    }
+
+    const btnSaveGasUrl = document.getElementById('btn-save-gas-url');
+    if (btnSaveGasUrl) {
+      btnSaveGasUrl.addEventListener('click', () => {
+        const gasInput = document.getElementById('gas-web-app-url');
+        if (gasInput) {
+          const url = gasInput.value.trim();
+          window.GoogleSheetSync.saveSettings({ gasWebAppUrl: url });
+          showToast('GAS ウェブアプリURLを保存しました');
+        }
+      });
+    }
+
+    const btnSyncPull = document.getElementById('btn-sync-pull');
+    if (btnSyncPull) {
+      btnSyncPull.addEventListener('click', async () => {
+        try {
+          showToast('スプレッドシートからデータを取得中...', 'info');
+          const residents = await window.GoogleSheetSync.pullFromSpreadsheet();
+          showToast(`スプレッドシートから ${residents.length} 件のデータを同期しました！`);
+          renderAll();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    }
+
+    const btnSyncPush = document.getElementById('btn-sync-push');
+    if (btnSyncPush) {
+      btnSyncPush.addEventListener('click', async () => {
+        try {
+          showToast('スプレッドシートへデータを送信中...', 'info');
+          const res = await window.GoogleSheetSync.pushToSpreadsheet();
+          showToast(res.message || 'スプレッドシートを更新しました！');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    }
+
+    const btnCopyTsv = document.getElementById('btn-copy-tsv');
+    if (btnCopyTsv) {
+      btnCopyTsv.addEventListener('click', async () => {
+        try {
+          await window.GoogleSheetSync.copyTsvToClipboard();
+          showToast('スプレッドシート貼り付け用データ(TSV)をクリップボードにコピーしました！');
+        } catch (err) {
+          showToast('クリップボードへのコピーに失敗しました', 'error');
+        }
+      });
+    }
+
     // エクスポートボタン
     elements.btnExportExcel.addEventListener('click', () => {
       window.ExcelExporter.exportAllToExcel();

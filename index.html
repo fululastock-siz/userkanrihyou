@@ -41,6 +41,9 @@
         </div>
 
         <div class="header-actions">
+          <button class="btn btn-primary" id="btn-sheet-sync-modal" title="Googleスプレッドシートと双方向同期・連携">
+            📊 スプレッドシート連携
+          </button>
           <button class="btn btn-outline" id="btn-export-excel" title="現在の管理表をExcel(.xlsx)形式で保存">
             📥 Excel出力
           </button>
@@ -318,30 +321,47 @@
       <!-- タブ6: .xlsファイル読込・更新 -->
       <div class="tab-content-pane" id="tab-pane-import" style="display: none;">
         <div class="table-card" style="padding: 28px;">
-          <h2 style="font-family: 'Shippori Mincho', serif; font-size: 20px; font-weight: 700; margin-bottom: 8px; color: var(--earth-ink);">
-            📥 Excelファイル（.xls / .xlsx / .csv）からのデータ取り込み
-          </h2>
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+            <h2 style="font-family: 'Shippori Mincho', serif; font-size: 20px; font-weight: 700; color: var(--earth-ink);">
+              📥 Excelファイル（.xls / .xlsx / .csv）からのデータ取り込み
+            </h2>
+            <span class="badge" style="background: var(--earth-green-light); color: var(--earth-green-dark); font-size: 12px; padding: 5px 10px;">
+              ✨ ワイズマン（Wiseman）出力ファイル対応
+            </span>
+          </div>
           <p style="font-size: 13px; color: var(--earth-muted); margin-bottom: 24px;">
-            介護ソフトやExcel台帳から出力したファイルをドラッグ＆ドロップしてください。<br>
-            列名（部屋番号、氏名、介護度、訪問医、食事形態等）を自動判定し、差分を確認してから安全に取り込みます。
+            ワイズマン等の介護ソフトやExcel台帳から出力したファイルをそのままドラッグ＆ドロップしてください。<br>
+            列名（居室コード/部屋番号、利用者氏名、要介護状態区分、主治医、主食/副食形態等）を自動判定し、差分を確認してから安全に取り込みます。
           </p>
 
           <div class="dropzone" id="excel-dropzone">
             <div class="dropzone-icon">📁</div>
             <div class="dropzone-title">ここに .xls / .xlsx / .csv ファイルをドロップ</div>
-            <div class="dropzone-desc">またはクリックしてファイルを選択</div>
+            <div class="dropzone-desc">またはクリックしてファイルを選択（ワイズマン帳票・Excel対応）</div>
             <input type="file" id="excel-file-input" accept=".xls,.xlsx,.csv" style="display: none;">
           </div>
 
           <div style="background-color: #f8faf9; border-radius: 12px; padding: 18px 20px; border: 1px solid var(--earth-border); font-size: 13px;">
-            <strong style="color: var(--earth-ink); display: block; margin-bottom: 6px;">💡 取り込み可能なデータ項目例:</strong>
-            <ul style="margin-left: 20px; line-height: 1.7; color: var(--earth-muted);">
-              <li><strong>必須/キー項目:</strong> 「部屋番号」（または「居室」）、「氏名」（または「名前」）</li>
-              <li><strong>基本項目:</strong> 「入居日」、「介護度」（要介護1〜5）、「生年月日」、「年齢」</li>
-              <li><strong>ケア項目:</strong> 「訪問医」（クリニック名）、「口腔衛生」（歯科）、「福祉用具」</li>
-              <li><strong>食事項目:</strong> 「ごはん」（主食）、「おかず」（副食）、「とろみ」、「早出し」</li>
-              <li>※ 列の並び順が異なっていても自動認識されます。</li>
-            </ul>
+            <strong style="color: var(--earth-ink); display: block; margin-bottom: 8px;">💡 ワイズマン（Wiseman）対応項目 & 自動認識キーワード:</strong>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; line-height: 1.6; color: var(--earth-muted);">
+              <div>
+                <strong>居室・基本情報:</strong><br>
+                ・居室コード / 居室名 / 部屋番号<br>
+                ・利用者氏名 / 入所者氏名 / 氏名<br>
+                ・要介護状態区分 / 介護度区分 (要介護1〜5等)<br>
+                ・生年月日 (和暦/西暦自動判別) / 満年齢
+              </div>
+              <div>
+                <strong>医療・ケア・食事情報:</strong><br>
+                ・主治医 / 医療機関名 / 訪問医<br>
+                ・歯科医療機関 / 口腔衛生<br>
+                ・主食形態 / 副食形態 / とろみ形態<br>
+                ・貸与用具 / 福祉用具 (車椅子・歩行器等)
+              </div>
+            </div>
+            <small style="display: block; margin-top: 10px; color: var(--earth-green-dark); font-weight: 700;">
+              ※ ヘッダーの並び順が異なる帳票や、上部にタイトル行が含まれる帳票でも自動的に解析されます。
+            </small>
           </div>
         </div>
       </div>
@@ -529,6 +549,61 @@
     </div>
   </div>
 
+  <!-- Googleスプレッドシート連携モーダル -->
+  <div class="modal-overlay" id="sheet-sync-modal">
+    <div class="modal-card" style="width: min(720px, 96vw);">
+      <div class="modal-header">
+        <h2>📊 Googleスプレッドシート連携・同期</h2>
+        <button class="modal-close" onclick="window.EarthApp.closeModal(document.getElementById('sheet-sync-modal'))">&times;</button>
+      </div>
+      <div class="modal-body">
+        <!-- 既存スプレッドシートへのリンク -->
+        <div style="background-color: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+          <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <div>
+              <strong style="color: #166534; font-size: 14px;">現在連携中のGoogleスプレッドシート</strong>
+              <div style="font-size: 12px; color: #15803d; margin-top: 2px;">EARTH CARE GROUP 入居者管理表</div>
+            </div>
+            <a href="https://docs.google.com/spreadsheets/d/1fjFlkIc29WlkZxYIP3hRNXRMYPW7MQpqcgCH3FjHnkY/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="background:#fff; border-color:#86efac; color:#166534;">
+              🔗 スプレッドシートを開く ↗
+            </a>
+          </div>
+        </div>
+
+        <!-- クイックアクション -->
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 24px;">
+          <button class="btn btn-primary" id="btn-sync-pull" style="padding: 14px; font-size: 13px;">
+            🔄 スプレッドシートから最新を取得
+          </button>
+          <button class="btn btn-gold" id="btn-sync-push" style="padding: 14px; font-size: 13px;">
+            ☁️ スプレッドシートへ保存・更新
+          </button>
+          <button class="btn btn-outline" id="btn-copy-tsv" style="padding: 14px; font-size: 13px;">
+            📋 貼り付け用データをコピー (TSV)
+          </button>
+        </div>
+
+        <!-- GAS設定セクション -->
+        <div style="background-color: #fafbfc; border-radius: 12px; padding: 18px; border: 1px solid var(--earth-border);">
+          <h3 style="font-size: 14px; font-weight: 800; color: var(--earth-ink); margin-bottom: 8px;">⚙️ Google Apps Script (GAS) Web API 設定</h3>
+          <p style="font-size: 12px; color: var(--earth-muted); margin-bottom: 12px;">
+            スプレッドシートの「拡張機能 > Apps Script」に同梱の <code>gas/Code.gs</code> をデプロイして発行されたウェブアプリURLを入力すると、双方向の自動同期が可能になります。
+          </p>
+          <div class="form-group">
+            <label class="form-label" style="font-size: 12px;">GAS ウェブアプリURL</label>
+            <input type="url" id="gas-web-app-url" class="form-input" placeholder="https://script.google.com/macros/s/.../exec">
+          </div>
+          <button class="btn btn-outline btn-sm" id="btn-save-gas-url" style="margin-top: 10px;">
+            設定を保存
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline" onclick="window.EarthApp.closeModal(document.getElementById('sheet-sync-modal'))">閉じる</button>
+      </div>
+    </div>
+  </div>
+
   <!-- トースト通知コンテナ -->
   <div class="toast-container" id="toast-container"></div>
 
@@ -537,6 +612,7 @@
   <script src="assets/js/data-store.js"></script>
   <script src="assets/js/excel-importer.js"></script>
   <script src="assets/js/excel-exporter.js"></script>
+  <script src="assets/js/google-sheet-sync.js"></script>
   <script src="assets/js/app.js"></script>
 
   <script>

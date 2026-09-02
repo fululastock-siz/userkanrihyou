@@ -6,23 +6,32 @@
 (function(window) {
   'use strict';
 
-  // 列名の自動判別用エイリアスマップ
+  // 列名の自動判別用エイリアスマップ（ワイズマンおよび各種介護ソフトに対応）
   const COLUMN_ALIASES = {
-    room: ['部屋番号', '部屋', '居室番号', '居室', '号室', 'Room', 'room'],
-    name: ['名前', '氏名', '入居者名', '利用者名', 'お客様名', 'Name', 'name'],
-    entryDate: ['入居日', '入所日', '契約開始日', '入居年月日', 'EntryDate'],
-    careLevel: ['介護度', '要介護度', '要介護', 'CareLevel'],
-    birthday: ['誕生日', '生年月日', '生年月', 'Birthday'],
-    age: ['年齢', 'Age', 'age'],
-    doctor: ['訪問医', '往診医', '主治医', 'クリニック', '医療機関', 'Doctor'],
-    dental: ['口腔衛生', '訪問歯科', '歯科', 'Dental'],
-    equipment: ['福祉用具', '用具', '車椅子', '歩行器', 'レンタル', 'Equipment'],
-    foodMain: ['ごはん', '主食', '主食形態', 'ご飯', 'Rice'],
-    foodSide: ['おかず', '副食', '副食形態', 'SideDish'],
-    foodThick: ['とろみ', 'トロミ', 'Thickener'],
+    room: ['居室コード', '居室名', '居室番号', '居室', '部屋番号', '部屋', '号室', '室番', 'Room', 'room'],
+    name: ['利用者氏名', '利用者名', '入所者氏名', '入所者名', '入居者氏名', '入居者名', '患者名', '氏名', '名前', 'お客様名', 'Name', 'name'],
+    entryDate: ['入所年月日', '入所日', '入居年月日', '入居日', '利用開始年月日', '利用開始日', '契約日', '契約開始日', 'EntryDate'],
+    careLevel: ['要介護状態区分', '介護度区分', '介護度', '要介護度', '要介護', '認定結果', 'CareLevel'],
+    birthday: ['生年月日', '生年月', '誕生日', 'Birthday'],
+    age: ['満年齢', '実年齢', '年齢', 'Age', 'age'],
+    doctor: ['主治医氏名', '主治医', '医療機関名', '医療機関', '訪問医', '往診医', 'クリニック', 'Doctor'],
+    dental: ['歯科医療機関', '訪問歯科', '口腔衛生', '歯科', 'Dental'],
+    equipment: ['貸与用具', '福祉用具', '用具', '車椅子', '歩行器', 'レンタル', 'Equipment'],
+    foodMain: ['主食形態', '主食', 'ごはん', 'ご飯形態', 'ご飯', 'Rice'],
+    foodSide: ['副食形態', '副食', 'おかず', '菜形態', 'SideDish'],
+    foodThick: ['とろみ形態', 'とろみ', 'トロミ', '水分形態', 'Thickener'],
     airConditioner: ['エアコン', '冷暖房', '空調', 'AC'],
-    earlyFood: ['早出し', '食事時間', '早出', 'EarlyFood']
+    earlyFood: ['早出し', '食事時間', '配膳時間', '早出', 'EarlyFood']
   };
+
+  // 全角英数・記号を半角に変換
+  function toHalfWidth(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/[！-～]/g, s => String.fromCharCode(s.charCodeAt(0) - 0xFEE0))
+      .replace(/　/g, ' ')
+      .trim();
+  }
 
   // Excelの日付シリアル値を YYYY/MM/DD に変換
   function excelSerialToDateStr(serial) {
@@ -38,17 +47,22 @@
     return String(serial || '');
   }
 
-  // 和暦（S24/06/08, T15/3/21 など）や日付文字列の正規化
+  // 和暦（S24/06/08, 昭和24年6月8日, R08/03/01 等）や日付文字列の正規化
   function normalizeDateStr(val) {
     if (!val) return '';
     if (typeof val === 'number') return excelSerialToDateStr(val);
-    return String(val).trim();
+    let str = toHalfWidth(val);
+    
+    // 「昭和24年6月8日」等の漢字表記を「S24/06/08」形式または「1949/06/08」に整形
+    str = str.replace(/明治/g, 'M').replace(/大正/g, 'T').replace(/昭和/g, 'S').replace(/平成/g, 'H').replace(/令和/g, 'R');
+    str = str.replace(/年|\./g, '/').replace(/月/g, '/').replace(/日/g, '').replace(/\s+/g, '');
+    return str;
   }
 
-  // 介護度の正規化 (1〜5 または 要介護1〜5)
+  // 介護度の正規化 (1〜5 または 要介護1〜5、要支援1〜2)
   function normalizeCareLevel(val) {
     if (val === null || val === undefined || val === '') return null;
-    const str = String(val).trim();
+    const str = toHalfWidth(val);
     if (str.includes('5')) return 5;
     if (str.includes('4')) return 4;
     if (str.includes('3')) return 3;
@@ -56,8 +70,8 @@
     if (str.includes('1')) return 1;
     if (str.includes('支援2')) return '要支援2';
     if (str.includes('支援1')) return '要支援1';
-    if (str.includes('自立')) return '自立';
-    const num = parseInt(str, 10);
+    if (str.includes('自立') || str.includes('非該当')) return '自立';
+    const num = parseInt(str.replace(/[^0-9]/g, ''), 10);
     return isNaN(num) ? null : num;
   }
 
