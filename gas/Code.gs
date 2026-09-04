@@ -8,6 +8,7 @@
 
 var CLOUD_SHEET_NAME = '_クラウド同期';
 var RESIDENT_SHEET_NAME = '入居者データ';
+var INCIDENT_SHEET_NAME = '事故報告一覧';
 var CHUNK_SIZE = 40000;
 
 function doGet(e) {
@@ -55,11 +56,13 @@ function doPost(e) {
 
     var payload = JSON.parse(e.postData.contents || '{}');
     var cloudData = payload.data || {
-      schemaVersion: 1,
+      schemaVersion: 3,
       residents: payload.residents || [],
       masters: payload.masters || {},
       columns: payload.columns || [],
       moveOutLogs: payload.moveOutLogs || [],
+      incidentReports: payload.incidentReports || [],
+      facilityProfile: payload.facilityProfile || {},
       snapshots: payload.snapshots || [],
       lastUpdated: payload.timestamp || new Date().toISOString()
     };
@@ -73,13 +76,15 @@ function doPost(e) {
 
     // 人が確認しやすい一覧表も更新する。同期の正本は二重保存領域側。
     writeReadableResidents_(ss, cloudData.residents);
+    writeReadableIncidentReports_(ss, cloudData.incidentReports || []);
 
     return jsonOutput_({
       status: 'success',
       message: '全データのクラウド保存が完了しました',
       revision: result.revision,
       updatedAt: result.updatedAt,
-      residentCount: cloudData.residents.length
+      residentCount: cloudData.residents.length,
+      incidentReportCount: (cloudData.incidentReports || []).length
     });
   } catch (err) {
     return jsonOutput_({ status: 'error', message: String(err) });
@@ -119,7 +124,7 @@ function writeCanonicalState_(ss, cloudData, requestId) {
     updatedAt: updatedAt,
     chunkCount: chunks.length,
     checksum: checksum,
-    schemaVersion: cloudData.schemaVersion || 2
+    schemaVersion: cloudData.schemaVersion || 3
   };
 
   sheet.getRange(2, targetColumn, sheet.getMaxRows() - 1, 1).clearContent();
@@ -213,6 +218,39 @@ function writeReadableResidents_(ss, residents) {
   sheet.getRange(1, 1, rows.length, header.length).setValues(rows);
   sheet.getRange(1, 1, 1, header.length)
     .setBackground('#247d1b')
+    .setFontColor('#ffffff')
+    .setFontWeight('bold');
+  sheet.setFrozenRows(1);
+}
+
+function writeReadableIncidentReports_(ss, reports) {
+  var sheet = ss.getSheetByName(INCIDENT_SHEET_NAME);
+  if (!sheet) sheet = ss.insertSheet(INCIDENT_SHEET_NAME);
+  var typeLabels = {
+    property: '物損事故', resident: '利用者事故', staff: '職員事故・労災',
+    traffic: '交通事故', nearMiss: 'ヒヤリ・ハット'
+  };
+  var statusLabels = {
+    draft: '下書き', submitted: '提出済み', reviewed: '確認済み', closed: '完了'
+  };
+  var rows = [[
+    '報告書ID', '帳票種別', '状態', '対象者', '居室', '発生日時', '発生場所',
+    '報告日', '報告者', '職種・役職', '更新日時', '版', '詳細(JSON)'
+  ]];
+  reports.forEach(function(report) {
+    var snapshot = report.residentSnapshot || {};
+    rows.push([
+      report.id || '', typeLabels[report.type] || report.type || '',
+      statusLabels[report.status] || report.status || '下書き', report.residentName || snapshot.name || '',
+      snapshot.room || '', report.occurredAt || '', report.location || '', report.reportDate || '',
+      report.reporterName || '', report.reporterRole || '', report.updatedAt || '',
+      Number(report.revision || 1), JSON.stringify(report.data || {})
+    ]);
+  });
+  sheet.clearContents();
+  sheet.getRange(1, 1, rows.length, rows[0].length).setValues(rows);
+  sheet.getRange(1, 1, 1, rows[0].length)
+    .setBackground('#1d4ed8')
     .setFontColor('#ffffff')
     .setFontWeight('bold');
   sheet.setFrozenRows(1);

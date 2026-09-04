@@ -16,7 +16,8 @@
   <meta http-equiv="Expires" content="0">
 
   <!-- スタイルシート（キャッシュバスター付き） -->
-  <link rel="stylesheet" href="assets/css/earth-theme.css?v=20260902_29">
+  <link rel="stylesheet" href="assets/css/earth-theme.css?v=20260904_30">
+  <link rel="stylesheet" href="assets/css/incident-reports.css?v=20260904_1">
   <link rel="stylesheet" href="assets/css/print.css?v=20260902_17">
 </head>
 <body>
@@ -112,6 +113,9 @@
         </button>
         <button class="nav-tab-btn" data-tab="stats" title="多角的なデータ分析・統計グラフ">
           📊 統計分析
+        </button>
+        <button class="nav-tab-btn" data-tab="incidents" title="事故・ヒヤリハット報告書の作成と印刷">
+          📝 事故報告
         </button>
         <button class="nav-tab-btn" data-tab="history" title="退去・異動の履歴一覧">
           🕒 異動履歴
@@ -464,7 +468,45 @@
         </div>
       </div>
 
-      <!-- タブ5: 異動・退去履歴 -->
+      <!-- 事故報告書作成 -->
+      <div class="tab-content-pane" id="tab-pane-incidents" style="display: none;">
+        <section class="incident-page-header">
+          <div>
+            <h2>事故・ヒヤリハット報告書</h2>
+            <p>雛形に沿って作成し、全PCへ共有できます。入力中の内容はブラウザにも保存されます。</p>
+          </div>
+          <div class="incident-page-actions">
+            <button type="button" class="btn btn-outline" id="btn-incident-settings">⚙️ 帳票設定</button>
+            <button type="button" class="btn btn-primary" id="btn-new-incident">＋ 新しい報告書</button>
+          </div>
+        </section>
+
+        <div class="incident-summary-grid" id="incident-summary-grid"></div>
+
+        <section class="incident-list-card">
+          <div class="incident-list-toolbar">
+            <input type="search" id="incident-search" class="form-input" placeholder="氏名・発生場所・報告者で検索">
+            <select id="incident-type-filter" class="form-input">
+              <option value="all">すべての帳票</option>
+              <option value="property">物損事故</option>
+              <option value="resident">利用者事故</option>
+              <option value="staff">職員事故・労災</option>
+              <option value="traffic">交通事故</option>
+              <option value="nearMiss">ヒヤリ・ハット</option>
+            </select>
+            <select id="incident-status-filter" class="form-input">
+              <option value="all">すべての状態</option>
+              <option value="draft">下書き</option>
+              <option value="submitted">提出済み</option>
+              <option value="reviewed">確認済み</option>
+              <option value="closed">完了</option>
+            </select>
+          </div>
+          <div id="incident-report-list" class="incident-report-list"></div>
+        </section>
+      </div>
+
+      <!-- タブ: 異動・退去履歴 -->
       <div class="tab-content-pane" id="tab-pane-history" style="display: none;">
         <div class="table-card">
           <div style="padding: 16px 20px; border-bottom: 1px solid var(--earth-border); background-color: #f8faf9;">
@@ -893,7 +935,7 @@
             <div>
               <strong style="color: #166534; font-size: 14px;">🟢 自動共有エンジンについて</strong>
               <div style="font-size: 12px; color: #15803d; margin-top: 2px;">
-                URLを設定すると、<strong>入居者情報・空室・清掃・入居予定・メモ・予定・購入依頼・マスタ・異動履歴</strong>を含む全データが、キャッシュを先に表示しながら編集時・起動時・30秒ごと・画面復帰時に全PCへ同期されます。
+                URLを設定すると、<strong>入居者情報・空室・清掃・入居予定・メモ・予定・購入依頼・事故報告・マスタ・異動履歴</strong>を含む全データが、キャッシュを先に表示しながら編集時・起動時・30秒ごと・画面復帰時に全PCへ同期されます。
               </div>
             </div>
             <a href="https://docs.google.com/spreadsheets/d/1fjFlkIc29WlkZxYIP3hRNXRMYPW7MQpqcgCH3FjHnkY/edit?usp=sharing" target="_blank" rel="noopener noreferrer" class="btn btn-outline btn-sm" style="background:#fff; border-color:#86efac; color:#166534;">
@@ -1063,16 +1105,139 @@
     </div>
   </div>
 
+  <!-- 事故報告書編集モーダル -->
+  <div class="modal-overlay" id="incident-editor-modal">
+    <div class="modal-card incident-editor-card">
+      <div class="modal-header">
+        <div>
+          <h2 id="incident-editor-title">事故報告書を作成</h2>
+          <div id="incident-editor-subtitle" class="incident-editor-subtitle">必要事項を入力してください</div>
+        </div>
+        <button class="modal-close" type="button" data-incident-action="close-editor">&times;</button>
+      </div>
+      <form id="incident-editor-form">
+        <div class="modal-body incident-editor-body">
+          <input type="hidden" name="id">
+          <section class="incident-form-section">
+            <h3>帳票と対象者</h3>
+            <div class="incident-form-grid">
+              <div class="form-group">
+                <label class="form-label" for="incident-type">帳票の種類</label>
+                <select id="incident-type" name="type" class="form-input" required>
+                  <option value="resident">利用者事故報告書</option>
+                  <option value="property">物損事故報告書</option>
+                  <option value="nearMiss">ヒヤリ・ハット報告書</option>
+                  <option value="staff">職員事故報告書（兼労災報告）</option>
+                  <option value="traffic">交通事故報告書</option>
+                </select>
+              </div>
+              <div class="form-group" id="incident-resident-field">
+                <label class="form-label" for="incident-resident">対象入居者</label>
+                <select id="incident-resident" name="residentId" class="form-input"></select>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="incident-status">状態</label>
+                <select id="incident-status" name="status" class="form-input">
+                  <option value="draft">下書き</option>
+                  <option value="submitted">提出済み</option>
+                  <option value="reviewed">確認済み</option>
+                  <option value="closed">完了</option>
+                </select>
+              </div>
+            </div>
+            <div id="incident-resident-summary" class="incident-resident-summary"></div>
+          </section>
+
+          <section class="incident-form-section">
+            <h3>報告・発生情報</h3>
+            <div class="incident-form-grid">
+              <div class="form-group">
+                <label class="form-label" for="incident-report-date">報告日</label>
+                <input type="date" id="incident-report-date" name="reportDate" class="form-input" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="incident-reporter">報告者</label>
+                <input type="text" id="incident-reporter" name="reporterName" class="form-input" maxlength="60" required>
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="incident-reporter-role">職種・役職</label>
+                <input type="text" id="incident-reporter-role" name="reporterRole" class="form-input" maxlength="60">
+              </div>
+              <div class="form-group">
+                <label class="form-label" for="incident-occurred-at">発生日時</label>
+                <input type="datetime-local" id="incident-occurred-at" name="occurredAt" class="form-input" required>
+              </div>
+              <div class="form-group full-width">
+                <label class="form-label" for="incident-location">発生場所</label>
+                <input type="text" id="incident-location" name="location" class="form-input" maxlength="160" required>
+              </div>
+            </div>
+          </section>
+
+          <div id="incident-dynamic-fields"></div>
+        </div>
+        <div class="modal-footer incident-editor-footer">
+          <button type="button" class="btn btn-outline" data-incident-action="close-editor">閉じる</button>
+          <button type="button" class="btn btn-outline" id="btn-save-incident-draft">下書き保存</button>
+          <button type="submit" class="btn btn-primary">💾 保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 事故報告書の施設設定 -->
+  <div class="modal-overlay" id="incident-settings-modal">
+    <div class="modal-card incident-settings-card">
+      <div class="modal-header">
+        <h2>事故報告書の共通設定</h2>
+        <button class="modal-close" type="button" data-incident-action="close-settings">&times;</button>
+      </div>
+      <form id="incident-settings-form">
+        <div class="modal-body">
+          <div class="incident-form-grid">
+            <div class="form-group full-width">
+              <label class="form-label">施設・事業所名</label>
+              <input type="text" name="facilityName" class="form-input" maxlength="100" placeholder="例：まーがれっと上足洗">
+            </div>
+            <div class="form-group full-width">
+              <label class="form-label">部署名・サービス種別</label>
+              <input type="text" name="serviceType" class="form-input" maxlength="140" placeholder="例：認知症対応型共同生活介護">
+            </div>
+            <div class="form-group">
+              <label class="form-label">FAX番号</label>
+              <input type="text" name="fax" class="form-input" maxlength="30" placeholder="例：000-000-0000">
+            </div>
+            <div class="form-group">
+              <label class="form-label">既定の報告者</label>
+              <input type="text" name="defaultReporter" class="form-input" maxlength="60">
+            </div>
+            <div class="form-group">
+              <label class="form-label">既定の職種・役職</label>
+              <input type="text" name="defaultReporterRole" class="form-input" maxlength="60">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-incident-action="close-settings">閉じる</button>
+          <button type="submit" class="btn btn-primary">保存</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="incident-print-root" aria-hidden="true"></div>
+
   <!-- トースト通知コンテナ -->
   <div class="toast-container" id="toast-container"></div>
 
   <!-- JavaScriptモジュール読み込み（キャッシュ無効化バージョン指定） -->
   <script src="assets/js/xlsx.full.min.js?v=20260902"></script>
-  <script src="assets/js/data-store.js?v=20260902_28"></script>
+  <script src="assets/js/data-store.js?v=20260904_30"></script>
   <script src="assets/js/excel-importer.js?v=20260902_17"></script>
   <script src="assets/js/excel-exporter.js?v=20260902_17"></script>
   <script src="assets/js/google-sheet-sync.js?v=20260902_24"></script>
-  <script src="assets/js/app.js?v=20260902_29"></script>
+  <script src="assets/js/incident-reports.js?v=20260904_1"></script>
+  <script src="assets/js/app.js?v=20260904_30"></script>
 
   <script>
     // 印刷日時

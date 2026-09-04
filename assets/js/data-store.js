@@ -210,6 +210,14 @@
     columns: DEFAULT_COLUMNS,
     masters: DEFAULT_MASTERS,
     doctorColors: {},
+    incidentReports: [],
+    facilityProfile: {
+      facilityName: '',
+      serviceType: '',
+      fax: '',
+      defaultReporter: '',
+      defaultReporterRole: ''
+    },
     snapshots: [], // ワイズマンインポート前のデータスナップショット履歴
     residents: [
       { id: "res_201", room: "201", floor: 2, name: "熊木　勝", entryDate: "2026/07/14", careLevel: "介4", birthday: "S24/06/08", age: 77, doctor: "井上Dr.　城西", dental: "", equipment: "施　車椅子", foodMain: "米飯", foodSide: "普通", foodThick: "", airConditioner: "〇", earlyFood: false, status: "入居中", note: "" },
@@ -358,6 +366,12 @@
             if (!parsed.snapshots || !Array.isArray(parsed.snapshots)) {
               parsed.snapshots = [];
             }
+            if (!Array.isArray(parsed.incidentReports)) {
+              parsed.incidentReports = [];
+            }
+            if (!parsed.facilityProfile || typeof parsed.facilityProfile !== 'object' || Array.isArray(parsed.facilityProfile)) {
+              parsed.facilityProfile = JSON.parse(JSON.stringify(DEFAULT_DATA.facilityProfile));
+            }
             // ケアマネ・相談員用フィールド（負担割合、被保番、保険者、有効期間）の補完
             parsed.residents.forEach((r, idx) => {
               if (typeof r.floorMemo !== 'string') r.floorMemo = '';
@@ -484,12 +498,16 @@
 
     exportCloudState() {
       return JSON.parse(JSON.stringify({
-        schemaVersion: 2,
+        schemaVersion: 3,
         residents: this.data.residents || [],
         columns: this.data.columns || DEFAULT_COLUMNS,
         masters: this.data.masters || DEFAULT_MASTERS,
         doctorColors: this.data.doctorColors || {},
         moveOutLogs: this.data.moveOutLogs || [],
+        incidentReports: Array.isArray(this.data.incidentReports) ? this.data.incidentReports : [],
+        facilityProfile: this.data.facilityProfile && typeof this.data.facilityProfile === 'object'
+          ? this.data.facilityProfile
+          : JSON.parse(JSON.stringify(DEFAULT_DATA.facilityProfile)),
         snapshots: Array.isArray(this.data.snapshots) ? this.data.snapshots.slice(0, 10) : [],
         lastUpdated: this.data.lastUpdated || new Date().toISOString()
       }));
@@ -509,6 +527,10 @@
           ? cloudState.doctorColors
           : (this.data.doctorColors || {}),
         moveOutLogs: Array.isArray(cloudState.moveOutLogs) ? cloudState.moveOutLogs : (this.data.moveOutLogs || []),
+        incidentReports: Array.isArray(cloudState.incidentReports) ? cloudState.incidentReports : (this.data.incidentReports || []),
+        facilityProfile: cloudState.facilityProfile && typeof cloudState.facilityProfile === 'object' && !Array.isArray(cloudState.facilityProfile)
+          ? cloudState.facilityProfile
+          : (this.data.facilityProfile || JSON.parse(JSON.stringify(DEFAULT_DATA.facilityProfile))),
         snapshots: Array.isArray(cloudState.snapshots) ? cloudState.snapshots.slice(0, 10) : (this.data.snapshots || []),
         residents: ensureRoomInventory(cloudState.residents.map(resident => ({
           ...resident,
@@ -528,6 +550,71 @@
 
       this.data = nextData;
       return this.saveData({ source: 'cloud', preserveTimestamp: true });
+    }
+
+    // --- 事故・ヒヤリハット報告書 ---
+    getIncidentReports() {
+      return Array.isArray(this.data.incidentReports) ? this.data.incidentReports : [];
+    }
+
+    getIncidentReportById(id) {
+      return this.getIncidentReports().find(report => report.id === id) || null;
+    }
+
+    saveIncidentReport(report) {
+      if (!report || !report.id || !report.type) {
+        throw new Error('事故報告書の保存内容が不正です');
+      }
+      if (!Array.isArray(this.data.incidentReports)) this.data.incidentReports = [];
+      const now = new Date().toISOString();
+      const index = this.data.incidentReports.findIndex(item => item.id === report.id);
+      const previous = index >= 0 ? this.data.incidentReports[index] : null;
+      const history = Array.isArray(previous && previous.history) ? previous.history.slice(-49) : [];
+      history.push({
+        at: now,
+        status: report.status || 'draft',
+        reporterName: report.reporterName || ''
+      });
+      const saved = {
+        ...(previous || {}),
+        ...report,
+        createdAt: previous && previous.createdAt ? previous.createdAt : now,
+        updatedAt: now,
+        revision: Number(previous && previous.revision || 0) + 1,
+        history
+      };
+      if (index >= 0) this.data.incidentReports[index] = saved;
+      else this.data.incidentReports.unshift(saved);
+      this.data.incidentReports.sort((a, b) => String(b.updatedAt || '').localeCompare(String(a.updatedAt || '')));
+      this.saveData({ renderHint: { type: 'incident-report', id: saved.id } });
+      return saved;
+    }
+
+    deleteIncidentReport(id) {
+      const report = this.getIncidentReportById(id);
+      if (!report) return false;
+      if ((report.status || 'draft') !== 'draft') {
+        throw new Error('提出済みの報告書は削除できません');
+      }
+      this.data.incidentReports = this.getIncidentReports().filter(item => item.id !== id);
+      this.saveData({ renderHint: { type: 'incident-report', id } });
+      return true;
+    }
+
+    getFacilityProfile() {
+      return {
+        ...DEFAULT_DATA.facilityProfile,
+        ...(this.data.facilityProfile || {})
+      };
+    }
+
+    saveFacilityProfile(profile) {
+      this.data.facilityProfile = {
+        ...this.getFacilityProfile(),
+        ...(profile || {})
+      };
+      this.saveData({ renderHint: { type: 'facility-profile' } });
+      return this.getFacilityProfile();
     }
 
     // --- 項目マスタ管理 ---

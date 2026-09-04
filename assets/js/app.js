@@ -8,7 +8,7 @@
 
   // アプリケーション状態
   const state = {
-    activeTab: 'all', // 'all' | 'floor' | 'meal' | 'medical' | 'history' | 'import'
+    activeTab: 'all', // 'all' | 'floor' | 'meal' | 'medical' | 'stats' | 'incidents' | 'history' | 'import'
     searchQuery: '',
     filterFloor: 'all',
     filterCareLevel: 'all',
@@ -1272,6 +1272,7 @@
     else if (state.activeTab === 'meal') renderMealView();
     else if (state.activeTab === 'medical') renderMedicalView();
     else if (state.activeTab === 'stats') renderAnalyticsView();
+    else if (state.activeTab === 'incidents' && window.IncidentReports) window.IncidentReports.render();
     else if (state.activeTab === 'history') renderHistoryView();
   }
 
@@ -2311,6 +2312,7 @@
 
   // アプリケーション初期化
   function init() {
+    if (window.IncidentReports) window.IncidentReports.init();
     setupEventListeners();
     renderAll();
 
